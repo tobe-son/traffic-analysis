@@ -20,7 +20,6 @@ dependencies:
 
   # --- Audio / Signal Processing ---
   - librosa>=0.10.1
-  - soundfile>=0.12.1
   - pydub>=0.25.1
 
   # --- Machine Learning (PyTorch & CUDA) ---
@@ -44,7 +43,6 @@ dependencies:
   # --- PIP Dependencies ---
   # Condaで見つからない、または特定ライブラリはここに入れます
   - pip:
+      - soundfile>=0.12.1    # ここに移動しました
       - pyroadacoustics>=1.1.0
       - coolname>=2.2.0
-      # 開発モードで現在のプロジェクトを入れる場合（必要ならコメントアウトを外す）
-      # - -e .
