@@ -1,0 +1,50 @@
+name: traf_ana
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  # --- Core ---
+  - python=3.10
+  - pip  # Conda環境内でpipを使うために必須
+
+  # --- Scientific Computing ---
+  # Numpy 2.0系はまだ互換性問題が起きやすいため、1.26系に固定して安定させます
+  - numpy>=1.26.3,<2.0
+  - scipy>=1.12.0
+  - pandas>=2.2.0
+  - matplotlib>=3.8.2
+  - tqdm>=4.67.0
+  - pyyaml>=6.0.2
+  - python-dotenv>=1.0.1
+
+  # --- Audio / Signal Processing ---
+  - librosa>=0.10.1
+  - soundfile>=0.12.1
+  - pydub>=0.25.1
+
+  # --- Machine Learning (PyTorch & CUDA) ---
+  # PyTorch公式チャンネルからGPU版を取得します
+  # pytorch-cuda=12.1 は現在の標準的なバージョンですが、環境に合わせて変更可能です
+  - pytorch=2.5.1
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1
+
+  # --- ML Frameworks & Metrics ---
+  - lightning>=2.1.3
+  - torchmetrics>=1.3.0
+  - hydra-core>=1.3.2
+  - umap-learn>=0.5.9
+
+  # --- MLOps (Optional in toml but included for "All-in") ---
+  - neptune>=1.9.1
+  - mlflow>=2.10.2
+
+  # --- PIP Dependencies ---
+  # Condaで見つからない、または特定ライブラリはここに入れます
+  - pip:
+      - pyroadacoustics>=1.1.0
+      - coolname>=2.2.0
+      # 開発モードで現在のプロジェクトを入れる場合（必要ならコメントアウトを外す）
+      # - -e .
