@@ -23,6 +23,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from learn_tool.settings import output_settings, prepare_dataloader
 from learn_tool.visualize import LatentSpaceVisualizer
+from encoder.base_model import AutoEncoder_Wave1D
 
 
 # ハイパーパラメータ
@@ -42,57 +43,6 @@ REPRESENTATION = 'waveform'  # 'waveform' or 'spectrogram'
 SAVE_LATENT_SPACE = 'n'
 LATENT_VISUALIZATION = 't-SNE'
 TSNE_COMPONENTS = 2
-
-
-class Encoder(nn.Module):
-    """1次元畳み込みエンコーダ。"""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.layers = nn.Sequential(
-            nn.Conv1d(1, 8, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Conv1d(8, 16, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Conv1d(16, 32, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.layers(x)
-
-
-class Decoder(nn.Module):
-    """1次元逆畳み込みデコーダ。"""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.layers = nn.Sequential(
-            nn.ConvTranspose1d(32, 16, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-            nn.ConvTranspose1d(16, 8, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-            nn.ConvTranspose1d(8, 1, kernel_size=4, stride=2, padding=1),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.layers(x)
-
-
-class AutoEncoder(nn.Module):
-    """1次元オートエンコーダ。"""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.enc = Encoder()
-        self.dec = Decoder()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        latent = self.enc(x)
-        return self.dec(latent)
-
-
 def log_hyperparameters(logger, params) -> None:
     logger.info('Hyperparameters:')
     for key, value in params.items():
@@ -239,7 +189,7 @@ def main() -> None:
     )
     logger.info('データの準備が完了しました。feature_min=%.6f feature_max=%.6f', feature_min, feature_max)
 
-    model = AutoEncoder().to(device)
+    model = AutoEncoder_Wave1D().to(device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 

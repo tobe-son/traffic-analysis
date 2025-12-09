@@ -108,3 +108,50 @@ class AutoEncoder_Original(torch.nn.Module):
         x = self.enc(x)
         x = self.dec(x)
         return x
+
+"""
+Wave1D（1次元畳み込みオートエンコーダ）
+"""
+
+
+class Encoder_Wave1D(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = torch.nn.Sequential(
+            torch.nn.Conv1d(1, 8, kernel_size=4, stride=2, padding=1),
+            torch.nn.ReLU(),
+            torch.nn.Conv1d(8, 16, kernel_size=4, stride=2, padding=1),
+            torch.nn.ReLU(),
+            torch.nn.Conv1d(16, 32, kernel_size=4, stride=2, padding=1),
+            torch.nn.ReLU()
+        )
+
+    def forward(self, x):
+        return self.encoder(x)
+
+
+class Decoder_Wave1D(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.decoder = torch.nn.Sequential(
+            torch.nn.ConvTranspose1d(32, 16, kernel_size=4, stride=2, padding=1),
+            torch.nn.ReLU(),
+            torch.nn.ConvTranspose1d(16, 8, kernel_size=4, stride=2, padding=1),
+            torch.nn.ReLU(),
+            torch.nn.ConvTranspose1d(8, 1, kernel_size=4, stride=2, padding=1),
+            torch.nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.decoder(x)
+
+
+class AutoEncoder_Wave1D(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.enc = Encoder_Wave1D()
+        self.dec = Decoder_Wave1D()
+
+    def forward(self, x):
+        latent = self.enc(x)
+        return self.dec(latent)
