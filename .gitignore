@@ -1,0 +1,46 @@
+# ----------------------------------------------------
+# 1. 環境・Conda・システムファイル
+# ----------------------------------------------------
+# Conda環境全体（Gitで管理するのは environment.yml のみ）
+.conda/
+.venv/
+.env
+
+# PyCharm, VS Code, JupyterなどIDEの設定ファイル
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store # macOSのシステムファイル
+
+# Python関連のキャッシュや一時ファイル
+__pycache__/
+*.pyc
+*.pyo
+build/
+dist/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.coverage
+
+# ----------------------------------------------------
+# 2. データと出力 (data/, outputs/)
+# ----------------------------------------------------
+# 生データや処理済みデータ（Git管理はしない。LFSの使用を推奨）
+data/
+# 学習済みモデル、画像、ログなどの結果
+outputs/
+
+# ----------------------------------------------------
+# 3. MLOps / 実験ログ /外部関数
+# ----------------------------------------------------
+# MLOpsツール（MLflow, Neptune, TensorBoardなど）のローカルログ
+mlruns/
+.neptune/
+runs/
+logs/
+tb_logs/ # PyTorch Lightning, TensorBoardのログ
+
+# Loss関数
+

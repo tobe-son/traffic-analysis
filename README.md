@@ -73,8 +73,8 @@
    **実行環境:**  
    - CUDA 12.1
    - cuDNN 9.5.1  
-   - Python 3.10.9  
-   - PyTorch 2.5.1  
+   - Python 3.10.
+   - PyTorch 2.5.1
 
    **環境構築手順:**  
    ```bash
@@ -84,18 +84,18 @@
    ただし、Condaの環境が導入され、CUDAのバージョンは12.1以上であることが前提です。
 
 3. **プログラムと学習データのダウンロード**  
-   - 深層距離学習の損失関数（CircleLoss）は、[Githubページ](https://github.com/TinyZeaMays/CircleLoss)からダウンロードし、`encoder/loss/`ディレクトリに`circle_loss.py`として配置してください。  
-   - 深層距離学習の損失関数（LogRatioLoss）は、[Githubページ](https://github.com/sung-yeon-kim/Beyond-Binary-Supervision-CVPR19)からダウンロードし、`main.py`、`utils.py`、`LogRatioLoss.py`を`encoder/loss/`ディレクトリに配置してください。  
-   - 学習データは、[Zenodo](https://zenodo.org/records/10700792)から`simulation.zip`をダウンロードして解凍し、`loc1`～`loc6`のフォルダを`workfolder/simulation/`に配置してください。
+   - 深層距離学習の損失関数（CircleLoss）は、[Githubページ](https://github.com/TinyZeaMays/CircleLoss)からダウンロードし、`src/loss/`ディレクトリに`circle_loss.py`として配置してください。  
+   - 深層距離学習の損失関数（LogRatioLoss）は、[Githubページ](https://github.com/sung-yeon-kim/Beyond-Binary-Supervision-CVPR19)からダウンロードし、`main.py`、`utils.py`、`LogRatioLoss.py`を`src/loss/`ディレクトリに配置してください。  
+   - 学習データは、[Zenodo](https://zenodo.org/records/10700792)から`simulation.zip`をダウンロードして解凍し、`loc1`～`loc6`のフォルダを`data/raw/simulation/`に配置してください。
 
 4. **データの準備**  
    - 以下のコマンドを実行して、走行音が最も大きい6秒間のデータをトリミングします。  
      ```bash
-     poetry run python -m workfolder.simulation.cut
+     python src/d_tool/cut.py
      ```  
    - 次に、以下のコマンドを実行して、`loc1`～`loc6`のメタデータを統合したメタファイルを作成します。  
      ```bash
-     poetry run python -m encoder.datasets.combain
+     python src/d_tool/combain.py
      ```
 
 5. **プログラムの実行**  
@@ -105,11 +105,11 @@
        ```bash
        poetry run python -m encoder.auto_encoder.auto_encoder
        ```  
-     - コンペティションのベースラインモデルに近いCNNエンコーダモデルの学習:  
+     - DCASE2024のベースラインモデルに近いCNNエンコーダモデルの学習:  
        ```bash
        poetry run python -m encoder.auto_encoder.CNN_o
        ```  
-     - 研究で主に使用したCNNエンコーダモデルの学習:  
+     - 昨年度研究で主に使用したCNNエンコーダモデルの学習:  
        ```bash
        poetry run python -m encoder.auto_encoder.CNN_s
        ```
