@@ -1,267 +1,374 @@
-"""
-Circle Loss を使用した深層距離学習(Metric Learning)の実装。
-"""
+"""Circle Loss を用いたエンコーダによるメトリックラーニングスクリプト。"""
+
+from __future__ import annotations
+
+import argparse
+import math
 import os
-import pandas as pd
-import librosa
-import librosa.display
+import sys
+from pathlib import Path
+from typing import Dict, Tuple, Type
+
 import numpy as np
+import pandas as pd
 import torch
 import torch.optim as optim
-import torch.nn.functional as F
-from tqdm import tqdm
-import random
-from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.manifold import MDS, TSNE
+import umap  # type: ignore
+from tqdm import tqdm
 
-from encoder.settings import output_settings, prepare_dataloader
-from encoder.visualize import LatentSpaceVisualizer
-from encoder.auto_encoder.base_model import Encoder_Original, Encoder_Small
-from encoder.auto_encoder.new_model import Encoder_VGG11, Encoder_ResNet
-from encoder.loss.circle_loss import CircleLoss, convert_label_to_similarity
 
-# ハイパーパラメータの設定
-ENCODER_MODEL = 'VGG11' # CNN_s or Original
-DATA = 'loc1-6' # 使用するデータ: loc1 or loc1-6
-DATA_CSV_PATH = './encoder/datasets/data_1-6.csv'
-MEL = 'ON' # ON or OFF 注: Decoder を手動で変更する必要あり
-SAMPLING_RATE = 16000
-N_FFT = 1024  # 1024 or 2048 がよく使われる（小さいほうが軽い）
-HOP_LENGTH = 512 # CNN_s = 512, baseline = 160
-if ENCODER_MODEL == 'Original':
-    HOP_LENGTH = 160
-if ENCODER_MODEL == 'VGG11' or ENCODER_MODEL == 'ResNet':
-    HOP_LENGTH = 160
-TEST_DATASET_PERCENTAGE = 0.2
-BATCH_SIZE = 32
-SEED = 42
-LEARNING_RATE = 0.001
-EPOCHS = 180
-SAVE_LATENT_SPACE = 'n' # y or n : 潜在空間を保存する
-DIMENSION_LATENT_SPACE = 2 # 潜在空間の次元
-VISUALIZATION = 't-SNE' # 可視化手法の選択 : t-SNE, PCA, Projection-based PCA, UMAP, MDS
+SRC_ROOT = Path(__file__).resolve().parents[1]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.append(str(SRC_ROOT))
 
-def hyperparameter(logger):
-    # ハイパーパラメータをログに記録
-    logger.info('Hyperparameters:')
-    hyperparameters = {
-        'ENCODER_MODEL': ENCODER_MODEL,
-        'DATA_CSV_PATH': DATA_CSV_PATH,
-        'DATA': DATA,
-        'MEL': MEL,
-        'SAMPLING_RATE': SAMPLING_RATE,
-        'N_FFT': N_FFT,
-        'HOP_LENGTH': HOP_LENGTH,
-        'TEST_DATASET_PERCENTAGE': TEST_DATASET_PERCENTAGE,
-        'BATCH_SIZE': BATCH_SIZE,
-        'SEED': SEED,
-        'LEARNING_RATE': LEARNING_RATE,
-        'EPOCHS': EPOCHS,
-        'DIMENSION_of_the_LATENT_SPACE': DIMENSION_LATENT_SPACE,
-        'VISUALIZATION': VISUALIZATION
-    }
-    for key, value in hyperparameters.items():
-        logger.info(f'{key}: {value}')
+from learn_tool.settings import output_settings, prepare_dataloader
+from learn_tool.visualize import LatentSpaceVisualizer
+from encoder.base_model import Encoder_Original, Encoder_Small, Encoder_Wave1D
+from encoder.new_model import Encoder_VGG11, Encoder_ResNet
+from loss.circle_loss import CircleLoss, convert_label_to_similarity
+from metric.utils import compute_stats_by_label, extract_embedding, set_global_seed
 
-def main():
-    logger = output_settings()
-    output_dir = logger.output_dir
 
-    # デバイスの確認
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    logger.info(f"Using device: {device}")
+ModelEntry = Tuple[str, Type[torch.nn.Module]]
 
-    torch.manual_seed(SEED)
-    np.random.seed(SEED)
-    random.seed(SEED)
-    if device == 'cuda':
-        torch.cuda.manual_seed(SEED)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+MODEL_REGISTRY: Dict[str, ModelEntry] = {
+    "wave1d": ("1D Conv encoder (waveform)", Encoder_Wave1D),
+    "small": ("Small CNN encoder", Encoder_Small),
+    "original": ("Original CNN encoder", Encoder_Original),
+    "vgg11": ("VGG11-based encoder", Encoder_VGG11),
+    "resnet": ("Residual CNN encoder", Encoder_ResNet),
+}
 
-    hyperparameter(logger)
-    train_loader, val_loader, *others = prepare_dataloader(
-        logger, hop_length=HOP_LENGTH, batch_size=BATCH_SIZE, data_csv_path=DATA_CSV_PATH, main_data_dir = f'./encoder/datasets/',
-        n_fft=N_FFT, data_num=DATA, mel=MEL,
-        sampling_rate=SAMPLING_RATE, test_split=TEST_DATASET_PERCENTAGE, seed=SEED
-        )
-    logger.info("データの準備が完了しました。")
+DEFAULT_REPRESENTATION = {
+    "wave1d": "waveform",
+    "small": "spectrogram",
+    "original": "spectrogram",
+    "vgg11": "spectrogram",
+    "resnet": "spectrogram",
+}
 
-    # モデルの初期化と学習
-    if ENCODER_MODEL == "CNN_s":
-        model = Encoder_Small().to(device)
-    elif ENCODER_MODEL == "Original":
-        model = Encoder_Original().to(device) 
-    elif ENCODER_MODEL == "VGG11":
-        model = Encoder_VGG11().to(device)
-    elif ENCODER_MODEL == "ResNet34":
-        model = Encoder_ResNet().to(device)
-    criterion = CircleLoss(m=0.25, gamma=80).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    logger.info("モデルの定義が完了しました。")
+DEFAULT_HOP_LENGTH = {
+    "wave1d": 512,
+    "small": 512,
+    "original": 160,
+    "vgg11": 160,
+    "resnet": 160,
+}
 
-    # model.load_state_dict(torch.load(f'./encoder/last_model_{ENCODER_MODEL}.pth', map_location=device, weights_only=True))  # モデルの重みを読み込む
 
-    
-    logger.info("学習を開始します。")
-    best_valid_loss = float('inf')
-    for epoch in range(EPOCHS):
-        # 学習ループ
-        model.train()
-        train_loss = 0.0
-        for data, speed, vtype, direc, locs in tqdm(train_loader, desc=f'Train Epoch {epoch+1}/{EPOCHS}'):
-            data = data.to(device)
-            optimizer.zero_grad()
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Circle Loss を用いて任意のエンコーダでメトリックラーニングを行うスクリプト"
+    )
+    parser.add_argument("--model", choices=MODEL_REGISTRY.keys(), default="vgg11", help="使用するエンコーダ")
+    parser.add_argument("--data-selection", default="loc1-6", help="使用するデータ識別子 (例: loc1, loc1-6)")
+    parser.add_argument("--data-csv", default="./data/processed/datasets/data_1-6.csv", help="メタデータ CSV のパス")
+    parser.add_argument("--main-data-dir", default="./data/processed/datasets", help="音声データのベースディレクトリ")
+    parser.add_argument("--mel", choices=["ON", "OFF"], default="OFF", help="メルスペクトログラムを使用するか")
+    parser.add_argument("--sampling-rate", type=int, default=16000)
+    parser.add_argument("--n-fft", type=int, default=1024)
+    parser.add_argument("--hop-length", type=int, default=None, help="STFT の hop length。未指定時はモデルに応じた推奨値を使用")
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--margin", type=float, default=0.25, help="CircleLoss のマージン値")
+    parser.add_argument("--gamma", type=float, default=80.0, help="CircleLoss のスケーリング係数")
+    parser.add_argument("--representation", choices=["waveform", "spectrogram"], default=None, help="入力表現。未指定時はモデル推奨を使用")
+    parser.add_argument("--visualization", choices=["t-SNE", "PCA", "LDA", "UMAP", "MDS"], default="t-SNE")
+    parser.add_argument("--dimension", type=int, default=2, help="潜在空間の可視化次元")
+    parser.add_argument("--save-latent-space", action="store_true", help="潜在空間を CSV として保存する")
+    parser.add_argument("--show-plot", action="store_true", help="3D 可視化を表示する")
+    parser.add_argument("--test-split", type=float, default=0.2)
+    parser.add_argument("--seed", type=int, default=42)
+    return parser.parse_args()
 
-            # 4クラス用に (vtype, direc) -> label を作成
-            labels = vtype * 2 + direc
-            labels = labels.to(device)
 
-            # モデルの出力を埋め込みベクトルとして取得し，平均プーリング & 正規化
-            embedding = model(data)
-            embedding = embedding.mean(dim=[2, 3])          # Global Average Pool
-            embedding = F.normalize(embedding, p=2, dim=1)  # L2ノルム正規化
+def log_hyperparameters(logger, params) -> None:
+    logger.info("Hyperparameters:")
+    for key, value in params.items():
+        logger.info("%s: %s", key, value)
 
-            # CircleLoss 用のスコア算出
-            sp, sn = convert_label_to_similarity(embedding, labels)
-            loss = criterion(sp, sn)
 
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-        
-        avg_train_loss = train_loss / len(train_loader)
-        logger.info(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {avg_train_loss:.4f}")
+def resolve_representation(model_key: str, override: str | None) -> str:
+    if override is not None:
+        return override
+    return DEFAULT_REPRESENTATION.get(model_key, "spectrogram")
 
-        # 検証ループ
-        model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for data, speed, vtype, direc, locs in val_loader:
-                data = data.to(device)
-                labels = vtype * 2 + direc
-                labels = labels.to(device)
-                embedding = model(data)
-                embedding = embedding.mean(dim=[2, 3])
-                embedding = F.normalize(embedding, p=2, dim=1)
-                sp, sn = convert_label_to_similarity(embedding, labels)
-                loss = criterion(sp, sn)
-                val_loss += loss.item()
 
-        avg_val_loss = val_loss / len(val_loader)
-        logger.info(f"Validation Loss: {avg_val_loss:.4f}")
+def resolve_hop_length(model_key: str, override: int | None) -> int:
+    if override is not None:
+        return override
+    return DEFAULT_HOP_LENGTH.get(model_key, 512)
 
-        # ベストモデルの保存
-        if avg_val_loss < best_valid_loss:
-            best_valid_loss = avg_val_loss
-            torch.save(model.state_dict(), os.path.join(output_dir, f'best_model_{ENCODER_MODEL}.pth'))
-            logger.info(f"Best model saved with validation loss: {best_valid_loss:.4f}")
 
-    # ラストモデルの保存
-    torch.save(model.state_dict(), os.path.join(output_dir, f'last_model_{ENCODER_MODEL}.pth'))
-    logger.info(f"Last model saved with validation loss: {best_valid_loss:.4f}")
-    
+def circle_loss_for_batch(model, batch, device, criterion):
+    data, _speed, vtype, direc, _loc = batch
+    data = data.to(device)
+    labels = (vtype.to(device) * 2) + direc.to(device)
+    embeddings = extract_embedding(model, data)
+    sp, sn = convert_label_to_similarity(embeddings, labels)
+    if sp.numel() == 0 or sn.numel() == 0:
+        return None
+    return criterion(sp, sn)
 
-    # 学習終了後に可視化用の推論を行う
+
+def train_one_epoch(model, loader, optimizer, device, criterion, epoch_label: str) -> float:
+    model.train()
+    total_loss = 0.0
+    usable_batches = 0
+    for batch in tqdm(loader, desc=epoch_label):
+        optimizer.zero_grad()
+        loss = circle_loss_for_batch(model, batch, device, criterion)
+        if loss is None:
+            continue
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+        usable_batches += 1
+
+    if usable_batches == 0:
+        raise RuntimeError("No valid batches produced a CircleLoss signal. Increase batch size or ensure label diversity.")
+
+    return total_loss / usable_batches
+
+
+def evaluate(model, loader, device, criterion) -> float:
     model.eval()
-    all_features = []
-    all_speeds = []
-    all_vehicle_types = []
-    all_directions = []
-    all_locations = []
+    total_loss = 0.0
+    usable_batches = 0
+    with torch.no_grad():
+        for batch in loader:
+            loss = circle_loss_for_batch(model, batch, device, criterion)
+            if loss is None:
+                continue
+            total_loss += loss.item()
+            usable_batches += 1
+
+    if usable_batches == 0:
+        return float("nan")
+
+    return total_loss / usable_batches
+
+
+def collect_embeddings(model, loaders, device):
+    model.eval()
+    latent_chunks = []
+    speeds = []
+    vehicle_types = []
+    directions = []
+    locations = []
 
     with torch.no_grad():
-        for data, speed, vtype, direc, locs in tqdm(train_loader, desc="Generating embeddings for visualization"):
-            data = data.to(device)
-            embedding = model(data)
-            embedding = embedding.mean(dim=[2, 3])
-            embedding = F.normalize(embedding, p=2, dim=1)
-            all_features.append(embedding.cpu().numpy())
-            all_speeds.extend(speed.cpu().numpy())
-            all_vehicle_types.extend(vtype.cpu().numpy())
-            all_directions.extend(direc.cpu().numpy())
-            all_locations.extend(locs.cpu().numpy())
-        for data, speed, vtype, direc, locs in tqdm(val_loader, desc="Generating embeddings for visualization"):
-            data = data.to(device)
-            embedding = model(data)
-            embedding = embedding.mean(dim=[2, 3])
-            embedding = F.normalize(embedding, p=2, dim=1)
-            all_features.append(embedding.cpu().numpy())
-            all_speeds.extend(speed.cpu().numpy())
-            all_vehicle_types.extend(vtype.cpu().numpy())
-            all_directions.extend(direc.cpu().numpy())
-            all_locations.extend(locs.cpu().numpy())
+        for loader in loaders:
+            for data, speed, vtype, direc, loc in loader:
+                embeddings = extract_embedding(model, data.to(device))
+                latent_chunks.append(embeddings.cpu())
+                speeds.append(speed.numpy())
+                vehicle_types.append(vtype.numpy())
+                directions.append(direc.numpy())
+                locations.append(loc.numpy())
 
-    all_features = np.concatenate(all_features, axis=0)
-    all_speeds = np.array(all_speeds)
-    all_vehicle_types = np.array(all_vehicle_types)  # 0 or 1
-    all_directions = np.array(all_directions)        # 0 or 1
-    all_locations = np.array(all_locations)
+    latent_matrix = torch.cat(latent_chunks, dim=0).numpy()
+    speeds = np.concatenate(speeds)
+    vehicle_types = np.concatenate(vehicle_types)
+    directions = np.concatenate(directions)
+    locations = np.concatenate(locations)
+    return latent_matrix, speeds, vehicle_types, directions, locations
 
-    # all_speeds, all_vehicle_types, all_directions を1つの DataFrame として保存
+
+def reduce_latent_space(latent_matrix, classes, method, components, seed, logger):
+    logger.info("%s による次元削減を開始します。", method)
+
+    if method == "t-SNE":
+        reducer = TSNE(n_components=components, random_state=seed)
+        return reducer.fit_transform(latent_matrix)
+
+    if method == "PCA":
+        reducer = PCA(n_components=components, random_state=seed)
+        return reducer.fit_transform(latent_matrix)
+
+    if method == "LDA":
+        reducer = LinearDiscriminantAnalysis(
+            n_components=min(components, len(np.unique(classes)) - 1)
+        )
+        return reducer.fit_transform(latent_matrix, classes)
+
+    if method == "UMAP":
+        reducer = umap.UMAP(n_components=components, random_state=seed)
+        return reducer.fit_transform(latent_matrix)
+
+    if method == "MDS":
+        reducer = MDS(n_components=components, random_state=seed)
+        return reducer.fit_transform(latent_matrix)
+
+    raise ValueError(f"Unsupported visualization method: {method}")
+
+
+def save_latent_results(latent_matrix, reduced, output_dir, components, logger) -> None:
+    latent_spaces_file = os.path.join(output_dir, "latent_spaces.csv")
+    pd.DataFrame(latent_matrix).to_csv(latent_spaces_file, index=False)
+    logger.info("latent_spaces を %s に保存しました。", latent_spaces_file)
+
+    if components == 2:
+        columns = ["Dimension_1", "Dimension_2"]
+        filename = "latent_2d.csv"
+    elif components == 3:
+        columns = ["Dimension_1", "Dimension_2", "Dimension_3"]
+        filename = "latent_3d.csv"
+    else:
+        columns = [f"Dimension_{idx + 1}" for idx in range(components)]
+        filename = "latent_reduced.csv"
+
+    reduced_file = os.path.join(output_dir, filename)
+    pd.DataFrame(reduced, columns=columns).to_csv(reduced_file, index=False)
+    logger.info("reduced latent を %s に保存しました。", reduced_file)
+
+
+def save_metadata(speeds, vehicle_types, directions, locations, output_dir, logger) -> None:
+    metadata_path = os.path.join(output_dir, "metadata.csv")
     metadata_df = pd.DataFrame({
-        'speed': all_speeds,
-        'vehicle_type': all_vehicle_types,
-        'direction': all_directions,
-        'location': all_locations
+        "speed": speeds,
+        "vehicle_type": vehicle_types,
+        "direction": directions,
+        "location": locations,
     })
-    metadata_file = os.path.join(output_dir, 'metadata.csv')
-    metadata_df.to_csv(metadata_file, index=False)
-    logger.info(f"speed, vehicle_type, direction, location を {metadata_file} に保存しました。")
-
-    # 次元に圧縮
-    if VISUALIZATION == 't-SNE':
-        # t-SNEによる次元削減
-        logger.info("t-SNEによる次元削減を開始します。")
-        tsne = TSNE(n_components=DIMENSION_LATENT_SPACE, init='pca', random_state=SEED)
-        features_2d = tsne.fit_transform(all_features)
-    elif VISUALIZATION == 'PCA':
-        # PCAによる次元削減
-        logger.info("PCAによる次元削減を開始します。")
-        pca = PCA(n_components=DIMENSION_LATENT_SPACE, random_state=SEED)
-        features_2d = pca.fit_transform(all_features)
-        # PCA 軸を保存
-        pca_components = pca.components_
-        pca_components_path = os.path.join(output_dir, 'pca_components.csv')
-        df_components = pd.DataFrame(pca_components)
-        df_components.to_csv(pca_components_path, index=False)
-
-    if SAVE_LATENT_SPACE == 'y':
-        # latent_spaces の保存
-        latent_spaces_df = pd.DataFrame(all_features)
-        latent_spaces_file = os.path.join(output_dir, 'latent_spaces.csv')
-        latent_spaces_df.to_csv(latent_spaces_file, index=False)
-        logger.info(f"latent_spaces を {latent_spaces_file} に保存しました。")
-
-        if DIMENSION_LATENT_SPACE==2:
-            # latent_2d の保存
-            latent_2d_df = pd.DataFrame(features_2d, columns=['Dimension_1', 'Dimension_2'])
-            latent_2d_file = os.path.join(output_dir, 'latent_2d.csv')
-            latent_2d_df.to_csv(latent_2d_file, index=False)
-            logger.info(f"latent_2d を {latent_2d_file} に保存しました。")
-        elif DIMENSION_LATENT_SPACE==3:
-            # latent_3d の保存
-            latent_3d_df = pd.DataFrame(features_2d, columns=['Dimension_1', 'Dimension_2', 'Dimension_3'])
-            latent_3d_file = os.path.join(output_dir, 'latent_3d.csv')
-            latent_3d_df.to_csv(latent_3d_file, index=False)
-            logger.info(f"latent_3d を {latent_3d_file} に保存しました。")
+    metadata_df.to_csv(metadata_path, index=False)
+    logger.info("メタデータを %s に保存しました。", metadata_path)
 
 
-    # 潜在空間の可視化
-    visualizer = LatentSpaceVisualizer(
-        dimension_latent_space=DIMENSION_LATENT_SPACE,
-        latent_data=features_2d,
-        speeds=all_speeds,
-        vehicle_types=all_vehicle_types,
-        directions=all_directions,
-        locations=all_locations,
-        output_dir=output_dir,
-        visualization=VISUALIZATION
+def main() -> None:
+    args = parse_args()
+
+    model_key = args.model
+    description, model_cls = MODEL_REGISTRY[model_key]
+    representation = resolve_representation(model_key, args.representation)
+    hop_length = resolve_hop_length(model_key, args.hop_length)
+
+    logger = output_settings()
+
+    hyperparameters = {
+        "MODEL": model_key,
+        "MODEL_DESCRIPTION": description,
+        "DATA_SELECTION": args.data_selection,
+        "DATA_CSV_PATH": args.data_csv,
+        "MAIN_DATA_DIR": args.main_data_dir,
+        "MEL": args.mel,
+        "SAMPLING_RATE": args.sampling_rate,
+        "N_FFT": args.n_fft,
+        "HOP_LENGTH": hop_length,
+        "TEST_DATASET_PERCENTAGE": args.test_split,
+        "BATCH_SIZE": args.batch_size,
+        "EPOCHS": args.epochs,
+        "LEARNING_RATE": args.lr,
+        "MARGIN": args.margin,
+        "GAMMA": args.gamma,
+        "REPRESENTATION": representation,
+        "VISUALIZATION": args.visualization,
+        "DIMENSION_LATENT_SPACE": args.dimension,
+        "SAVE_LATENT_SPACE": args.save_latent_space,
+        "SEED": args.seed,
+    }
+    log_hyperparameters(logger, hyperparameters)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info("Using device: %s", device)
+
+    set_global_seed(args.seed)
+
+    train_loader, val_loader, feature_min, feature_max = prepare_dataloader(
+        logger=logger,
+        hop_length=hop_length,
+        batch_size=args.batch_size,
+        data_csv_path=args.data_csv,
+        main_data_dir=args.main_data_dir,
+        n_fft=args.n_fft,
+        data_num=args.data_selection,
+        mel=args.mel,
+        sampling_rate=args.sampling_rate,
+        test_split=args.test_split,
+        seed=args.seed,
+        representation=representation,
+    )
+    logger.info(
+        "データの準備が完了しました。feature_min=%.6f feature_max=%.6f",
+        feature_min,
+        feature_max,
     )
 
-    # 可視化をまとめて実行 (3Dでインタラクティブに操作したければ show_plot=True)
-    visualizer.visualize_all(show_plot=True)
-    
+    model = model_cls().to(device)
+    criterion = CircleLoss(m=args.margin, gamma=args.gamma).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+    best_val_loss = float("inf")
+    best_epoch = -1
+
+    for epoch in range(args.epochs):
+        epoch_label = f"Train Epoch {epoch + 1}/{args.epochs}"
+        train_loss = train_one_epoch(model, train_loader, optimizer, device, criterion, epoch_label)
+        val_loss = evaluate(model, val_loader, device, criterion)
+
+        logger.info(
+            "Epoch [%d/%d] train_loss=%.4f val_loss=%s",
+            epoch + 1,
+            args.epochs,
+            train_loss,
+            f"{val_loss:.4f}" if math.isfinite(val_loss) else "nan",
+        )
+
+        if math.isfinite(val_loss) and val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_epoch = epoch + 1
+            torch.save(model.state_dict(), os.path.join(logger.output_dir, f"best_encoder_{model_key}.pth"))
+            torch.save(optimizer.state_dict(), os.path.join(logger.output_dir, f"optimizer_{model_key}.pth"))
+            logger.info("Best model updated (epoch %d, val_loss=%.4f)", best_epoch, best_val_loss)
+
+    torch.save(model.state_dict(), os.path.join(logger.output_dir, f"last_encoder_{model_key}.pth"))
+    logger.info("Last model checkpoint saved. Best epoch=%s", best_epoch if best_epoch > 0 else "N/A")
+
+    latent_matrix, speeds, vehicle_types, directions, locations = collect_embeddings(
+        model,
+        [train_loader, val_loader],
+        device,
+    )
+    logger.info("潜在空間の抽出が完了しました。")
+
+    classes = (vehicle_types * 2) + directions
+    reduced_latent = reduce_latent_space(
+        latent_matrix,
+        classes,
+        args.visualization,
+        args.dimension,
+        args.seed,
+        logger,
+    )
+
+    if args.save_latent_space:
+        save_latent_results(latent_matrix, reduced_latent, logger.output_dir, args.dimension, logger)
+
+    save_metadata(speeds, vehicle_types, directions, locations, logger.output_dir, logger)
+
+    speed_stats = compute_stats_by_label(speeds, classes)
+    for label, mean_speed in sorted(speed_stats.items()):
+        logger.info("Class %d 平均速度: %.2f", label, mean_speed)
+
+    if args.dimension in (2, 3):
+        visualizer = LatentSpaceVisualizer(
+            dimension_latent_space=args.dimension,
+            latent_data=reduced_latent,
+            speeds=np.asarray(speeds),
+            vehicle_types=np.asarray(vehicle_types),
+            directions=np.asarray(directions),
+            locations=np.asarray(locations),
+            output_dir=logger.output_dir,
+            visualization=args.visualization,
+        )
+        visualizer.visualize_all(show_plot=args.show_plot)
+    else:
+        logger.warning("Latent visualization is skipped because dimension is not 2 or 3.")
+
 
 if __name__ == "__main__":
     main()

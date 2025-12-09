@@ -1,473 +1,392 @@
-"""
-Log Ratio Loss (連続値に対応した損失関数) を使用した深層距離学習の実装。
-"""
+"""Log-Ratio loss を用いた連続値メトリックラーニングの共通化スクリプト。"""
+
+from __future__ import annotations
+
+import argparse
+import math
 import os
 import sys
-import pandas as pd
-import librosa
-import librosa.display
-import matplotlib.pyplot as plt
+from pathlib import Path
+from typing import Dict, Tuple, Type
+
 import numpy as np
-from datetime import datetime
-from sklearn.model_selection import train_test_split
+import pandas as pd
 import torch
 import torch.optim as optim
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, TensorDataset
-from tqdm import tqdm
-import matplotlib.cm as cm
 from sklearn.decomposition import PCA
-from mpl_toolkits.mplot3d import Axes3D  # 3D プロット用
-import logging
-import random
-from sklearn.manifold import TSNE
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-import umap
-from sklearn.manifold import MDS
+from sklearn.manifold import MDS, TSNE
+import umap  # type: ignore
+from tqdm import tqdm
 
-from encoder.visualize import LatentSpaceVisualizer
-from encoder.auto_encoder.base_model import Encoder_Small, Encoder_Original
-from encoder.auto_encoder.new_model import Encoder_VGG11, Encoder_ResNet
-from encoder.loss.LogRatioLoss import LogRatioLoss as LogRatioLossEdited
+SRC_ROOT = Path(__file__).resolve().parents[1]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.append(str(SRC_ROOT))
 
-# ハイパーパラメータの設定
-ENCODER_MODEL = 'VGG11' # Metric or Original
-DATA = 'loc1-6' # 使用するデータ: loc1 or loc1-6
-DATA_CSV_PATH = './encoder/datasets/data_1-6.csv'
-REAL_DATA_CSV_PATH = './encoder/datasets/real_data.csv'
-MEL = 'OFF' # ON or OFF 注: Decoder を手動で変更する必要あり
-SAMPLING_RATE = 16000
-N_FFT = 1024  # 1024 or 2048 がよく使われる（小さいほうが軽い）
-HOP_LENGTH = 512 # CNN_s = 512, baseline = 160
-if ENCODER_MODEL == 'Original':
-    HOP_LENGTH = 160
-if ENCODER_MODEL == 'VGG11' or ENCODER_MODEL == 'ResNet':
-    HOP_LENGTH = 160
-TEST_DATASET_PERCENTAGE = 0.2
-BATCH_SIZE = 64
-SEED = 42
-LEARNING_RATE = 0.001
-EPOCHS = 20
-SAVE_LATENT_SPACE = 'n' # y or n : 潜在空間を保存する
-DIMENSION_LATENT_SPACE = 2 # 潜在空間の次元
-VISUALIZATION = 't-SNE' # 可視化手法の選択 : t-SNE, PCA, Projection-based PCA, UMAP, MDS
-LATENT_3D_CSV_PATH = './encoder/latent_3d.csv'
-PRINCIPAL_AXES_CSV_PATH = './encoder/principal_axes.csv'
-
-def output_settings():
-    # 実行時間を使って出力ディレクトリを作成
-    current_time = datetime.now().strftime('%Y-%m-%d/%H-%M-%S')
-    output_directory = os.path.join('./outputs', current_time)
-    os.makedirs(output_directory, exist_ok=True)
-
-    # ログの設定
-    log_file_path = os.path.join(output_directory, 'training.log')
-
-    # ロガーの作成
-    logger = logging.getLogger()
-
-    # ハンドラがすでに追加されていればスキップ
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    logger.setLevel(logging.INFO)
-
-    # ハンドラの作成
-    file_handler = logging.FileHandler(log_file_path)
-    console_handler = logging.StreamHandler(sys.stdout)
-
-    # フォーマットの設定
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
-
-    # ハンドラをロガーに追加
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-
-    # output_dirをカスタム属性として追加
-    logger.output_dir = output_directory
-
-    return logger
-
-def hyperparameter():
-    # ハイパーパラメータをログに記録
-    logger.info('Hyperparameters:')
-    hyperparameters = {
-        'ENCODER_MODEL': ENCODER_MODEL,
-        'DATA_CSV_PATH': DATA_CSV_PATH,
-        'DATA': DATA,
-        'MEL': MEL,
-        'SAMPLING_RATE': SAMPLING_RATE,
-        'N_FFT': N_FFT,
-        'HOP_LENGTH': HOP_LENGTH,
-        'TEST_DATASET_PERCENTAGE': TEST_DATASET_PERCENTAGE,
-        'BATCH_SIZE': BATCH_SIZE,
-        'SEED': SEED,
-        'LEARNING_RATE': LEARNING_RATE,
-        'EPOCHS': EPOCHS,
-        'DIMENSION_of_the_LATENT_SPACE': DIMENSION_LATENT_SPACE,
-        'VISUALIZATION': VISUALIZATION,
-        'LATENT_3D_CSV_PATH': LATENT_3D_CSV_PATH,
-        'PRINCIPAL_AXES_CSV_PATH': PRINCIPAL_AXES_CSV_PATH
-    }
-    for key, value in hyperparameters.items():
-        logger.info(f'{key}: {value}')
-
-logger = output_settings()
-output_dir = logger.output_dir
-
-# デバイスの確認
-device = "cuda" if torch.cuda.is_available() else "cpu"
-logger.info(f"Using device: {device}")
-
-torch.manual_seed(SEED)
-np.random.seed(SEED)
-random.seed(SEED)
-if device == 'cuda':
-    torch.cuda.manual_seed(SEED)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+from learn_tool.settings import output_settings, prepare_dataloader
+from learn_tool.visualize import LatentSpaceVisualizer
+from encoder.base_model import Encoder_Original, Encoder_Small, Encoder_Wave1D
+from encoder.new_model import Encoder_ResNet, Encoder_VGG11
+from loss.LogRatioLoss import LogRatioLoss
+from metric.utils import (describe_continuous, extract_embedding,
+                          set_global_seed)
 
 
-# スペクトログラムの作成
-def create_spectrogram(file_path, n_fft=N_FFT, hop_length=HOP_LENGTH):
-    y, sr = librosa.load(file_path, sr=SAMPLING_RATE)
-    S = librosa.stft(y, n_fft=n_fft, hop_length=hop_length, center=True)
-    S_db = librosa.amplitude_to_db(np.abs(S))
-    return S_db
+ModelEntry = Tuple[str, Type[torch.nn.Module]]
 
-# メルスペクトログラムの作成
-def create_mel_spectrogram(file_path, n_fft=N_FFT, hop_length=HOP_LENGTH, n_mels=128):
-    y, sr = librosa.load(file_path, sr=SAMPLING_RATE)
-    S = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels, center=True)
-    S_db = librosa.amplitude_to_db(S, ref=np.max)
-    return S_db
+MODEL_REGISTRY: Dict[str, ModelEntry] = {
+    "wave1d": ("1D Conv encoder (waveform)", Encoder_Wave1D),
+    "small": ("Small CNN encoder", Encoder_Small),
+    "original": ("Original CNN encoder", Encoder_Original),
+    "vgg11": ("VGG11-based encoder", Encoder_VGG11),
+    "resnet": ("Residual CNN encoder", Encoder_ResNet),
+}
 
-def prepare_dataloader(
-        data_num=DATA, sampling_rate=SAMPLING_RATE,
-        batch_size=BATCH_SIZE, test_split=TEST_DATASET_PERCENTAGE,
-        seed=SEED, data_csv_path=DATA_CSV_PATH
-        ):
-    
-    # データの読み込み
-    data = pd.read_csv(data_csv_path)
-    data['speed'] = pd.to_numeric(data['speed'], errors='coerce')
-    before_drop = len(data)
-    data = data.dropna(subset=['speed']).copy()
-    dropped = before_drop - len(data)
-    if dropped:
-        logger.warning(f"Removed {dropped} rows with invalid speed values from {data_csv_path}.")
+DEFAULT_REPRESENTATION = {
+    "wave1d": "waveform",
+    "small": "spectrogram",
+    "original": "spectrogram",
+    "vgg11": "spectrogram",
+    "resnet": "spectrogram",
+}
 
-    # locのリストを作成
-    if  data_num ==  'loc1-6':
-        locations = [f'loc{i}' for i in range(1, 7)]
-    else:
-        locations = [f'{data_num}']
+DEFAULT_HOP_LENGTH = {
+    "wave1d": 512,
+    "small": 512,
+    "original": 160,
+    "vgg11": 160,
+    "resnet": 160,
+}
 
 
-    # すべてのリストを作成
-    spectrograms = []
-    speeds = []
-    vehicle_types_list = []
-    directions_list = []
-    locations_list = []
-
-    # 各locについて音声データのスペクトログラムを生成
-    for loc in locations:
-        # locに応じてdataをフィルタリング (regex=False)
-        loc_data = data[data['path'].str.contains(loc, regex=False)]
-
-        for i, row in loc_data.iterrows():
-            # ファイルパスを動的に作成
-            file_path = os.path.join(f'./encoder/datasets/', row['path'])
-            
-            if pd.isna(row['speed']):
-                continue
-
-            # スペクトログラムの生成
-            if MEL == 'ON':
-                S_db = create_mel_spectrogram(file_path)
-            else:
-                S_db = create_spectrogram(file_path)
-            
-            # リストに追加
-            spectrograms.append(S_db)
-            speeds.append(row['speed'])
-            vehicle_types_list.append(row['vehicle_type'])
-            directions_list.append(row['direction'])
-            locations_list.append(loc)
-            
-            # 最初のスペクトログラムを保存（loc1の1つ目を例として保存）
-            if loc == 'loc1' and i == 0:
-                logger.info(f"sample_spectrogram: speed {row['speed']}, {loc}, {row['vehicle_type']}, {row['direction']}")
-                plt.figure(figsize=(10, 4))
-                if MEL == 'ON':
-                    librosa.display.specshow(S_db, sr=sampling_rate, hop_length=512, x_axis='time', y_axis='mel', cmap='magma')
-                else:
-                    librosa.display.specshow(S_db, sr=sampling_rate, hop_length=512, x_axis='time', y_axis='hz', cmap='magma')
-                plt.colorbar(format='%+2.0f dB')
-                plt.title('Spectrogram')
-                plt.xlabel("Time")
-                plt.ylabel("Frequency")
-                plt.tight_layout()
-                plt.savefig(os.path.join(output_dir, 'sample_spectrogram.png'))
-                plt.close()
-
-
-    # データの準備
-    spectrograms = np.array(spectrograms, dtype=np.float32)
-    speeds = np.array(speeds, dtype=np.float32)
-    vehicle_types_list = np.array(vehicle_types_list)
-    directions_list = np.array(directions_list)
-    locations_list = np.array(locations_list)
-
-    # スペクトログラムの最小値と最大値を取得
-    original_spectrogram_min = spectrograms.min()
-    original_spectrogram_max = spectrograms.max()
-
-    # スペクトログラムを0-1に正規化
-    spectrograms = (spectrograms - original_spectrogram_min) / (original_spectrogram_max - original_spectrogram_min)
-
-    # データの分割
-    train_data, val_data, speeds_train, speeds_val, vehicle_train, vehicle_val, direction_train, direction_val, location_train, location_val = train_test_split(
-        spectrograms, speeds, vehicle_types_list, directions_list, locations_list,
-        test_size=test_split, random_state=seed
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="LogRatioLoss を用いて任意のエンコーダで連続値のメトリックラーニングを行うスクリプト"
     )
+    parser.add_argument("--model", choices=MODEL_REGISTRY.keys(), default="vgg11", help="使用するエンコーダ")
+    parser.add_argument("--data-selection", default="loc1-6", help="使用するデータ識別子 (例: loc1, loc1-6)")
+    parser.add_argument("--data-csv", default="./data/processed/datasets/data_1-6.csv", help="メタデータ CSV のパス")
+    parser.add_argument("--main-data-dir", default="./data/processed/datasets", help="音声データのベースディレクトリ")
+    parser.add_argument("--mel", choices=["ON", "OFF"], default="OFF", help="メルスペクトログラムを使用するか")
+    parser.add_argument("--sampling-rate", type=int, default=16000)
+    parser.add_argument("--n-fft", type=int, default=1024)
+    parser.add_argument("--hop-length", type=int, default=None, help="STFT の hop length。未指定時はモデル推奨値を使用")
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--norm-p", type=float, default=2.0, help="LogRatioLoss の Minkowski 次数")
+    parser.add_argument("--eps", type=float, default=1e-6, help="LogRatioLoss の安定化項")
+    parser.add_argument("--representation", choices=["waveform", "spectrogram"], default=None, help="入力表現。未指定時はモデル推奨を使用")
+    parser.add_argument("--visualization", choices=["t-SNE", "PCA", "LDA", "UMAP", "MDS"], default="t-SNE")
+    parser.add_argument("--dimension", type=int, default=2, help="潜在空間の可視化次元")
+    parser.add_argument("--save-latent-space", action="store_true", help="潜在空間を CSV として保存する")
+    parser.add_argument("--show-plot", action="store_true", help="可視化をインタラクティブ表示する")
+    parser.add_argument("--test-split", type=float, default=0.2)
+    parser.add_argument("--seed", type=int, default=42)
+    return parser.parse_args()
 
-    # vehicle_type と direction をエンコード（例：car=0, cv=1 / right=0, left=1）
-    vehicle_map = {'car':0, 'cv':1}
-    direction_map = {'right':0, 'left':1}
-    vehicle_train_encoded = torch.tensor([vehicle_map.get(v,0) for v in vehicle_train], dtype=torch.long)
-    vehicle_val_encoded = torch.tensor([vehicle_map.get(v,0) for v in vehicle_val], dtype=torch.long)
-    direction_train_encoded = torch.tensor([direction_map.get(d,0) for d in direction_train], dtype=torch.long)
-    direction_val_encoded = torch.tensor([direction_map.get(d,0) for d in direction_val], dtype=torch.long)
-    # locationを数値にエンコードするためのマップ作成
-    location_map = {
-        'loc1': 0,
-        'loc2': 1,
-        'loc3': 2,
-        'loc4': 3,
-        'loc5': 4,
-        'loc6': 5
-    }
-    location_train_encoded = torch.tensor([location_map.get(l,0) for l in location_train], dtype=torch.long)
-    location_val_encoded = torch.tensor([location_map.get(l,0) for l in location_val], dtype=torch.long)
-    # テンソルへの変換
-    train_tensors = [torch.tensor(s, dtype=torch.float32).unsqueeze(0) for s in train_data]
-    val_tensors = [torch.tensor(s, dtype=torch.float32).unsqueeze(0) for s in val_data]
-    train_speeds = torch.tensor(speeds_train, dtype=torch.float32)
-    val_speeds = torch.tensor(speeds_val, dtype=torch.float32)
-    # Datasetの作成
-    train_dataset = TensorDataset(torch.stack(train_tensors), train_speeds, vehicle_train_encoded, direction_train_encoded, location_train_encoded)
-    val_dataset = TensorDataset(torch.stack(val_tensors), val_speeds, vehicle_val_encoded, direction_val_encoded, location_val_encoded)
-    # DataLoaderの作成
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    return train_loader, val_loader, original_spectrogram_min, original_spectrogram_max
 
-def main():
-    hyperparameter()
-    train_loader, val_loader, original_spectrogram_min, original_spectrogram_max = prepare_dataloader()
-    logger.info("データの準備が完了しました。")
+def log_hyperparameters(logger, params) -> None:
+    logger.info("Hyperparameters:")
+    for key, value in params.items():
+        logger.info("%s: %s", key, value)
 
-    # モデルの初期化と学習
-    if ENCODER_MODEL == "Metric":
-        model = Encoder_Small().to(device)
-    elif ENCODER_MODEL == "Original":
-        model = Encoder_Original().to(device) 
-    elif ENCODER_MODEL == "VGG11":
-        model = Encoder_VGG11().to(device)
-    elif ENCODER_MODEL == "ResNet":
-        model = Encoder_ResNet().to(device)
-    criterion = LogRatioLossEdited().to(device)
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    logger.info("モデルの定義が完了しました。")
 
-    # 保存済みのモデルとオプティマイザの状態を読み込む
-    # model.load_state_dict(torch.load(f'./encoder/best_model_{ENCODER_MODEL}.pth', map_location=device, weights_only=True))  # モデルの重みを読み込む
-    
-    # 【追加の学習】保存済みのモデルとオプティマイザの状態を読み込む
-    # model.load_state_dict(torch.load(f'./encoder/last_model_{ENCODER_MODEL}.pth', map_location=device, weights_only=True))  # モデルの重みを読み込む
-    
-    logger.info("学習を開始します。")
-    best_valid_loss = float('inf')
-    for epoch in range(EPOCHS):
-        # 学習ループ
-        model.train()
-        train_loss = 0.0
-        for data, speed, vtype, direc, locs in tqdm(train_loader, desc=f'Train Epoch {epoch+1}/{EPOCHS}'):
-            data = data.to(device)
-            speed = speed.to(device)
+def resolve_representation(model_key: str, override: str | None) -> str:
+    if override is not None:
+        return override
+    return DEFAULT_REPRESENTATION.get(model_key, "spectrogram")
 
-            optimizer.zero_grad()
 
-            # アンカー + ペアを想定してバッチ先頭だけアンカーにする
-            # ===================================================
-            # バッチサイズ = B とすると，アンカー1枚 + ペア(B-1)枚
-            # ===================================================
-            if data.size(0) < 2:
-                # バッチサイズが1の場合はロス計算ができないのでスキップ
-                continue
+def resolve_hop_length(model_key: str, override: int | None) -> int:
+    if override is not None:
+        return override
+    return DEFAULT_HOP_LENGTH.get(model_key, 512)
 
-            # 埋め込みベクトルを取得s
-            embedding = model(data)
-            embedding = embedding.mean(dim=[2, 3])          # Global Average Pool
-            embedding = F.normalize(embedding, p=2, dim=1)  # L2ノルム正規化
 
-            # ログ比損失用に，(B, dim)の先頭がアンカー，残りがペア
-            # speed[0] がアンカー速度，speed[1:] がペア速度
-            gt_dist = torch.abs(speed[0] - speed[1:])  # shape = (B-1,)
+def log_ratio_loss_for_batch(model, batch, device, criterion):
+    data, speed, *_ = batch
+    if data.size(0) < 2:
+        return None
 
-            # LogRatioLoss は先頭要素をアンカー，残りをペアとして扱う
-            # embedding のサイズは (B, dim)， gt_dist のサイズは (B-1,)
-            loss = criterion(embedding, gt_dist)
+    embeddings = extract_embedding(model, data.to(device))
+    speeds = speed.to(device)
+    gt_dist = torch.abs(speeds[0] - speeds[1:])
+    if gt_dist.numel() == 0:
+        return None
 
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-        
-        avg_train_loss = train_loss / len(train_loader)
-        logger.info(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {avg_train_loss:.4f}")
+    return criterion(embeddings, gt_dist)
 
-        # 検証ループ
-        model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for data, speed, vtype, direc, locs in val_loader:
-                data = data.to(device)
-                speed = speed.to(device)
-                
-                embedding = model(data)
-                embedding = embedding.mean(dim=[2, 3])
-                embedding = F.normalize(embedding, p=2, dim=1)
 
-                gt_dist = torch.abs(speed[0] - speed[1:])
-                loss = criterion(embedding, gt_dist)
-                val_loss += loss.item()
+def train_one_epoch(model, loader, optimizer, device, criterion, epoch_label: str) -> float:
+    model.train()
+    total_loss = 0.0
+    usable_batches = 0
+    for batch in tqdm(loader, desc=epoch_label):
+        optimizer.zero_grad()
+        loss = log_ratio_loss_for_batch(model, batch, device, criterion)
+        if loss is None or not torch.isfinite(loss):
+            continue
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+        usable_batches += 1
 
-        avg_val_loss = val_loss / len(val_loader)
-        logger.info(f"Validation Loss: {avg_val_loss:.4f}")
+    if usable_batches == 0:
+        raise RuntimeError("No valid batches produced a LogRatioLoss signal. Increase batch size or ensure diverse speeds.")
 
-        # ベストモデルの保存
-        if avg_val_loss < best_valid_loss:
-            best_valid_loss = avg_val_loss
-            torch.save(model.state_dict(), os.path.join(output_dir, f'best_model_{ENCODER_MODEL}.pth'))
-            logger.info(f"Best model saved with validation loss: {best_valid_loss:.4f}")
+    return total_loss / usable_batches
 
-    # ラストモデルの保存
-    torch.save(model.state_dict(), os.path.join(output_dir, f'last_model_{ENCODER_MODEL}.pth'))
-    logger.info(f"Last model saved with validation loss: {best_valid_loss:.4f}")
-    
 
-    # 学習終了後に可視化用の推論を行う
+def evaluate(model, loader, device, criterion) -> float:
     model.eval()
-    all_features = []
-    all_speeds = []
-    all_vehicle_types = []
-    all_directions = []
-    all_locations = []
+    total_loss = 0.0
+    usable_batches = 0
+    with torch.no_grad():
+        for batch in loader:
+            loss = log_ratio_loss_for_batch(model, batch, device, criterion)
+            if loss is None or not torch.isfinite(loss):
+                continue
+            total_loss += loss.item()
+            usable_batches += 1
+
+    if usable_batches == 0:
+        return float("nan")
+
+    return total_loss / usable_batches
+
+
+def collect_embeddings(model, loaders, device):
+    model.eval()
+    latent_chunks = []
+    speeds = []
+    vehicle_types = []
+    directions = []
+    locations = []
 
     with torch.no_grad():
-        for data, speed, vtype, direc, locs in tqdm(train_loader, desc="Generating embeddings for visualization"):
-            data = data.to(device)
-            embedding = model(data)
-            embedding = embedding.mean(dim=[2, 3])
-            embedding = F.normalize(embedding, p=2, dim=1)
-            all_features.append(embedding.cpu().numpy())
-            all_speeds.extend(speed.cpu().numpy())
-            all_vehicle_types.extend(vtype.cpu().numpy())
-            all_directions.extend(direc.cpu().numpy())
-            all_locations.extend(locs.cpu().numpy())
-        for data, speed, vtype, direc, locs in tqdm(val_loader, desc="Generating embeddings for visualization"):
-            data = data.to(device)
-            embedding = model(data)
-            embedding = embedding.mean(dim=[2, 3])
-            embedding = F.normalize(embedding, p=2, dim=1)
-            all_features.append(embedding.cpu().numpy())
-            all_speeds.extend(speed.cpu().numpy())
-            all_vehicle_types.extend(vtype.cpu().numpy())
-            all_directions.extend(direc.cpu().numpy())
-            all_locations.extend(locs.cpu().numpy())
+        for loader in loaders:
+            for data, speed, vtype, direc, loc in loader:
+                embeddings = extract_embedding(model, data.to(device))
+                latent_chunks.append(embeddings.cpu())
+                speeds.append(speed.numpy())
+                vehicle_types.append(vtype.numpy())
+                directions.append(direc.numpy())
+                locations.append(loc.numpy())
 
-    all_features = np.concatenate(all_features, axis=0)
-    all_speeds = np.array(all_speeds)
-    all_vehicle_types = np.array(all_vehicle_types)  # 0 or 1
-    all_directions = np.array(all_directions)        # 0 or 1
-    all_locations = np.array(all_locations)
+    if not latent_chunks:
+        raise RuntimeError("No embeddings were collected from the provided loaders.")
 
-    # all_speeds, all_vehicle_types, all_directions を1つの DataFrame として保存
+    latent_matrix = torch.cat(latent_chunks, dim=0).numpy()
+    speeds = np.concatenate(speeds)
+    vehicle_types = np.concatenate(vehicle_types)
+    directions = np.concatenate(directions)
+    locations = np.concatenate(locations)
+    return latent_matrix, speeds, vehicle_types, directions, locations
+
+
+def reduce_latent_space(latent_matrix, classes, method, components, seed, logger):
+    logger.info("%s による次元削減を開始します。", method)
+
+    if method == "t-SNE":
+        reducer = TSNE(n_components=components, random_state=seed)
+        return reducer.fit_transform(latent_matrix)
+
+    if method == "PCA":
+        reducer = PCA(n_components=components, random_state=seed)
+        return reducer.fit_transform(latent_matrix)
+
+    if method == "LDA":
+        reducer = LinearDiscriminantAnalysis(
+            n_components=min(components, len(np.unique(classes)) - 1)
+        )
+        return reducer.fit_transform(latent_matrix, classes)
+
+    if method == "UMAP":
+        reducer = umap.UMAP(n_components=components, random_state=seed)
+        return reducer.fit_transform(latent_matrix)
+
+    if method == "MDS":
+        reducer = MDS(n_components=components, random_state=seed)
+        return reducer.fit_transform(latent_matrix)
+
+    raise ValueError(f"Unsupported visualization method: {method}")
+
+
+def save_latent_results(latent_matrix, reduced, output_dir, components, logger) -> None:
+    latent_spaces_file = os.path.join(output_dir, "latent_spaces.csv")
+    pd.DataFrame(latent_matrix).to_csv(latent_spaces_file, index=False)
+    logger.info("latent_spaces を %s に保存しました。", latent_spaces_file)
+
+    if components == 2:
+        columns = ["Dimension_1", "Dimension_2"]
+        filename = "latent_2d.csv"
+    elif components == 3:
+        columns = ["Dimension_1", "Dimension_2", "Dimension_3"]
+        filename = "latent_3d.csv"
+    else:
+        columns = [f"Dimension_{idx + 1}" for idx in range(components)]
+        filename = "latent_reduced.csv"
+
+    reduced_file = os.path.join(output_dir, filename)
+    pd.DataFrame(reduced, columns=columns).to_csv(reduced_file, index=False)
+    logger.info("reduced latent を %s に保存しました。", reduced_file)
+
+
+def save_metadata(speeds, vehicle_types, directions, locations, output_dir, logger) -> None:
+    metadata_path = os.path.join(output_dir, "metadata.csv")
     metadata_df = pd.DataFrame({
-        'speed': all_speeds,
-        'vehicle_type': all_vehicle_types,
-        'direction': all_directions,
-        'location': all_locations
+        "speed": speeds,
+        "vehicle_type": vehicle_types,
+        "direction": directions,
+        "location": locations,
     })
-    metadata_file = os.path.join(output_dir, 'metadata.csv')
-    metadata_df.to_csv(metadata_file, index=False)
-    logger.info(f"speed, vehicle_type, direction, location を {metadata_file} に保存しました。")
-
-    norm = plt.Normalize(all_speeds.min(), all_speeds.max())
-
-    # 次元に圧縮
-    if VISUALIZATION == 't-SNE':
-        # t-SNEによる次元削減
-        logger.info("t-SNEによる次元削減を開始します。")
-        tsne = TSNE(n_components=DIMENSION_LATENT_SPACE, init='pca', random_state=SEED)
-        features_2d = tsne.fit_transform(all_features)
-    elif VISUALIZATION == 'PCA':
-        # PCAによる次元削減
-        logger.info("PCAによる次元削減を開始します。")
-        pca = PCA(n_components=DIMENSION_LATENT_SPACE, random_state=SEED)
-        features_2d = pca.fit_transform(all_features)
-    elif VISUALIZATION == 'UMAP':
-        # UMAPによる次元削減
-        logger.info("UMAPによる次元削減を開始します。")
-        fit = umap.UMAP(n_components=DIMENSION_LATENT_SPACE, random_state=SEED)
-        features_2d = fit.fit_transform(all_features)
-    elif VISUALIZATION == 'MDS':
-        # UMAPによる次元削減
-        logger.info("MDSによる次元削減を開始します。")
-        mds = MDS(n_components=DIMENSION_LATENT_SPACE, random_state=SEED)
-        features_2d = mds.fit_transform(all_features)
+    metadata_df.to_csv(metadata_path, index=False)
+    logger.info("メタデータを %s に保存しました。", metadata_path)
 
 
-    if SAVE_LATENT_SPACE == 'y':
-        # latent_spaces の保存
-        latent_spaces_df = pd.DataFrame(all_features)
-        latent_spaces_file = os.path.join(output_dir, 'latent_spaces.csv')
-        latent_spaces_df.to_csv(latent_spaces_file, index=False)
-        logger.info(f"latent_spaces を {latent_spaces_file} に保存しました。")
-
-        if DIMENSION_LATENT_SPACE==2:
-            # latent_2d の保存
-            latent_2d_df = pd.DataFrame(features_2d, columns=['Dimension_1', 'Dimension_2'])
-            latent_2d_file = os.path.join(output_dir, 'latent_2d.csv')
-            latent_2d_df.to_csv(latent_2d_file, index=False)
-            logger.info(f"latent_2d を {latent_2d_file} に保存しました。")
-        elif DIMENSION_LATENT_SPACE==3:
-            # latent_3d の保存
-            latent_3d_df = pd.DataFrame(features_2d, columns=['Dimension_1', 'Dimension_2', 'Dimension_3'])
-            latent_3d_file = os.path.join(output_dir, 'latent_3d.csv')
-            latent_3d_df.to_csv(latent_3d_file, index=False)
-            logger.info(f"latent_3d を {latent_3d_file} に保存しました。")
-
-
-    # 潜在空間の可視化
-    visualizer = LatentSpaceVisualizer(
-        dimension_latent_space=DIMENSION_LATENT_SPACE,
-        latent_data=features_2d,
-        speeds=all_speeds,
-        vehicle_types=all_vehicle_types,
-        directions=all_directions,
-        locations=all_locations,
-        output_dir=output_dir,
-        visualization=VISUALIZATION
+def log_speed_summary(logger, speeds) -> None:
+    stats = describe_continuous(speeds)
+    if stats["count"] == 0:
+        logger.warning("No speed information available for summary stats.")
+        return
+    logger.info(
+        "Speed stats -> count=%d min=%.2f max=%.2f mean=%.2f std=%.2f",
+        stats["count"],
+        stats["min"],
+        stats["max"],
+        stats["mean"],
+        stats["std"],
     )
 
-    # 可視化をまとめて実行 (3Dでインタラクティブに操作したければ show_plot=True)
-    visualizer.visualize_all(show_plot=True)
-    
+
+def main() -> None:
+    args = parse_args()
+
+    model_key = args.model
+    description, model_cls = MODEL_REGISTRY[model_key]
+    representation = resolve_representation(model_key, args.representation)
+    hop_length = resolve_hop_length(model_key, args.hop_length)
+
+    logger = output_settings()
+
+    hyperparameters = {
+        "MODEL": model_key,
+        "MODEL_DESCRIPTION": description,
+        "DATA_SELECTION": args.data_selection,
+        "DATA_CSV_PATH": args.data_csv,
+        "MAIN_DATA_DIR": args.main_data_dir,
+        "MEL": args.mel,
+        "SAMPLING_RATE": args.sampling_rate,
+        "N_FFT": args.n_fft,
+        "HOP_LENGTH": hop_length,
+        "TEST_DATASET_PERCENTAGE": args.test_split,
+        "BATCH_SIZE": args.batch_size,
+        "EPOCHS": args.epochs,
+        "LEARNING_RATE": args.lr,
+        "NORM_P": args.norm_p,
+        "EPS": args.eps,
+        "REPRESENTATION": representation,
+        "VISUALIZATION": args.visualization,
+        "DIMENSION_LATENT_SPACE": args.dimension,
+        "SAVE_LATENT_SPACE": args.save_latent_space,
+        "SEED": args.seed,
+    }
+    log_hyperparameters(logger, hyperparameters)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info("Using device: %s", device)
+
+    set_global_seed(args.seed)
+
+    train_loader, val_loader, feature_min, feature_max = prepare_dataloader(
+        logger=logger,
+        hop_length=hop_length,
+        batch_size=args.batch_size,
+        data_csv_path=args.data_csv,
+        main_data_dir=args.main_data_dir,
+        n_fft=args.n_fft,
+        data_num=args.data_selection,
+        mel=args.mel,
+        sampling_rate=args.sampling_rate,
+        test_split=args.test_split,
+        seed=args.seed,
+        representation=representation,
+    )
+    logger.info(
+        "データの準備が完了しました。feature_min=%.6f feature_max=%.6f",
+        feature_min,
+        feature_max,
+    )
+
+    model = model_cls().to(device)
+    criterion = LogRatioLoss(p=args.norm_p, eps=args.eps).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+    best_val_loss = float("inf")
+    best_epoch = -1
+
+    for epoch in range(args.epochs):
+        epoch_label = f"Train Epoch {epoch + 1}/{args.epochs}"
+        train_loss = train_one_epoch(model, train_loader, optimizer, device, criterion, epoch_label)
+        val_loss = evaluate(model, val_loader, device, criterion)
+
+        logger.info(
+            "Epoch [%d/%d] train_loss=%.4f val_loss=%s",
+            epoch + 1,
+            args.epochs,
+            train_loss,
+            f"{val_loss:.4f}" if math.isfinite(val_loss) else "nan",
+        )
+
+        if math.isfinite(val_loss) and val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_epoch = epoch + 1
+            torch.save(model.state_dict(), os.path.join(logger.output_dir, f"best_encoder_{model_key}.pth"))
+            torch.save(optimizer.state_dict(), os.path.join(logger.output_dir, f"optimizer_{model_key}.pth"))
+            logger.info("Best model updated (epoch %d, val_loss=%.4f)", best_epoch, best_val_loss)
+
+    torch.save(model.state_dict(), os.path.join(logger.output_dir, f"last_encoder_{model_key}.pth"))
+    logger.info("Last model checkpoint saved. Best epoch=%s", best_epoch if best_epoch > 0 else "N/A")
+
+    latent_matrix, speeds, vehicle_types, directions, locations = collect_embeddings(
+        model,
+        [train_loader, val_loader],
+        device,
+    )
+    logger.info("潜在空間の抽出が完了しました。")
+
+    classes = (vehicle_types * 2) + directions
+    reduced_latent = reduce_latent_space(
+        latent_matrix,
+        classes,
+        args.visualization,
+        args.dimension,
+        args.seed,
+        logger,
+    )
+
+    if args.save_latent_space:
+        save_latent_results(latent_matrix, reduced_latent, logger.output_dir, args.dimension, logger)
+
+    save_metadata(speeds, vehicle_types, directions, locations, logger.output_dir, logger)
+    log_speed_summary(logger, speeds)
+
+    if args.dimension in (2, 3):
+        visualizer = LatentSpaceVisualizer(
+            dimension_latent_space=args.dimension,
+            latent_data=reduced_latent,
+            speeds=np.asarray(speeds),
+            vehicle_types=np.asarray(vehicle_types),
+            directions=np.asarray(directions),
+            locations=np.asarray(locations),
+            output_dir=logger.output_dir,
+            visualization=args.visualization,
+        )
+        visualizer.visualize_all(show_plot=args.show_plot)
+    else:
+        logger.warning("Latent visualization is skipped because dimension is not 2 or 3.")
+
 
 if __name__ == "__main__":
     main()
