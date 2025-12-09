@@ -7,7 +7,7 @@ import math
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Tuple, Type
+from typing import Dict, Optional, Tuple, Type
 
 import numpy as np
 import pandas as pd
@@ -83,6 +83,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--show-plot", action="store_true", help="可視化をインタラクティブ表示する")
     parser.add_argument("--test-split", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--resume-dir", default=None, help="CircleLoss などで学習済みの出力ディレクトリ")
+    parser.add_argument("--resume-checkpoint", choices=["best", "last"], default="best", help="resume-dir 内で読むチェックポイント種別")
+    parser.add_argument("--init-encoder-state", default=None, help="直接指定するエンコーダ重みファイル (.pth)")
+    parser.add_argument("--init-optimizer-state", default=None, help="直接指定するオプティマイザ状態ファイル (.pth)")
+    parser.add_argument("--load-optimizer", action="store_true", help="指定したチェックポイントからオプティマイザも復元する")
     return parser.parse_args()
 
 
@@ -102,6 +107,51 @@ def resolve_hop_length(model_key: str, override: int | None) -> int:
     if override is not None:
         return override
     return DEFAULT_HOP_LENGTH.get(model_key, 512)
+
+
+def resolve_checkpoint_paths(
+    args: argparse.Namespace,
+    model_key: str,
+    logger,
+) -> Tuple[Optional[Path], Optional[Path]]:
+    if args.init_encoder_state:
+        encoder_path = Path(args.init_encoder_state).expanduser()
+        optimizer_path = (
+            Path(args.init_optimizer_state).expanduser()
+            if args.init_optimizer_state
+            else None
+        )
+        return encoder_path, optimizer_path
+
+    if args.resume_dir:
+        base = Path(args.resume_dir).expanduser()
+        if not base.exists():
+            logger.warning("resume-dir %s が存在しません。", base)
+            return None, None
+
+        candidates = []
+        checkpoint_tag = args.resume_checkpoint
+        if checkpoint_tag:
+            candidates.append(base / f"{checkpoint_tag}_encoder_{model_key}.pth")
+        candidates.extend(
+            [
+                base / f"best_encoder_{model_key}.pth",
+                base / f"last_encoder_{model_key}.pth",
+            ]
+        )
+
+        encoder_path = next((path for path in candidates if path.exists()), None)
+        if encoder_path is None:
+            logger.warning("指定ディレクトリに %s 用のエンコーダ重みが見つかりませんでした。", model_key)
+            return None, None
+
+        optimizer_path = base / f"optimizer_{model_key}.pth"
+        if not optimizer_path.exists():
+            optimizer_path = None
+
+        return encoder_path, optimizer_path
+
+    return None, None
 
 
 def log_ratio_loss_for_batch(model, batch, device, criterion):
@@ -291,6 +341,11 @@ def main() -> None:
         "DIMENSION_LATENT_SPACE": args.dimension,
         "SAVE_LATENT_SPACE": args.save_latent_space,
         "SEED": args.seed,
+        "RESUME_DIR": args.resume_dir,
+        "RESUME_CHECKPOINT": args.resume_checkpoint,
+        "INIT_ENCODER_STATE": args.init_encoder_state,
+        "INIT_OPTIMIZER_STATE": args.init_optimizer_state,
+        "LOAD_OPTIMIZER": args.load_optimizer,
     }
     log_hyperparameters(logger, hyperparameters)
 
@@ -322,6 +377,22 @@ def main() -> None:
     model = model_cls().to(device)
     criterion = LogRatioLoss(p=args.norm_p, eps=args.eps).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+    encoder_ckpt, optimizer_ckpt = resolve_checkpoint_paths(args, model_key, logger)
+    if encoder_ckpt is not None and encoder_ckpt.exists():
+        state = torch.load(encoder_ckpt, map_location=device)
+        model.load_state_dict(state)
+        logger.info("Loaded encoder weights from %s", encoder_ckpt)
+    elif encoder_ckpt is not None:
+        logger.warning("指定したエンコーダ重み %s が見つかりませんでした。", encoder_ckpt)
+
+    if args.load_optimizer:
+        if optimizer_ckpt is not None and optimizer_ckpt.exists():
+            opt_state = torch.load(optimizer_ckpt, map_location=device)
+            optimizer.load_state_dict(opt_state)
+            logger.info("Loaded optimizer state from %s", optimizer_ckpt)
+        elif optimizer_ckpt is not None:
+            logger.warning("指定したオプティマイザ状態 %s が見つかりませんでした。", optimizer_ckpt)
 
     best_val_loss = float("inf")
     best_epoch = -1

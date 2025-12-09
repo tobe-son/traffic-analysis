@@ -91,11 +91,11 @@
 4. **データの準備**  
    - 以下のコマンドを実行して、走行音が最も大きい6秒間のデータをトリミングします。  
      ```bash
-     python src/data_tool/cut.py
+     python src/sim_data_tool/cut.py
      ```  
    - 次に、以下のコマンドを実行して、`loc1`～`loc6`のメタデータを統合したメタファイルを作成します。  
      ```bash
-     python src/data_tool/combain.py
+     python src/sim_data_tool/combain.py
      ```
 
 5. **プログラムの実行**  
