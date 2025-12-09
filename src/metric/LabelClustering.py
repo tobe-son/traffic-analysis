@@ -1,5 +1,5 @@
 """
-Circle Loss を使用した深層距離学習の実装。
+Circle Loss を使用した深層距離学習(Metric Learning)の実装。
 """
 import os
 import pandas as pd
