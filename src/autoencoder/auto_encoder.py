@@ -1,5 +1,5 @@
 """
-poetry run python -m encoder.auto-encoder
+1次元AutoEncoderによる潜在空間取得とその可視化
 """
 
 import os
