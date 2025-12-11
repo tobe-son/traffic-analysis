@@ -88,6 +88,8 @@
    - 深層距離学習の損失関数（LogRatioLoss）は、[Githubページ](https://github.com/sung-yeon-kim/Beyond-Binary-Supervision-CVPR19)からダウンロードし、`main.py`、`utils.py`、`LogRatioLoss.py`を`src/loss/`ディレクトリに配置してください。  
    - 学習データは、[Zenodo](https://zenodo.org/records/10700792)から`simulation.zip`をダウンロードして解凍し、`loc1`～`loc6`のフォルダを`data/raw/simulation/`に配置してください。
 
+   - 追加の学習データ[Zenodo](https://zenodo.org/records/7551553)https://www.idmt.fraunhofer.de/en/publications/datasets/traffic.html
+
 4. **データの準備**  
    - 以下のコマンドを実行して、走行音が最も大きい6秒間のデータをトリミングします。  
      ```bash
