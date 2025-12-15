@@ -1,3 +1,10 @@
+# conda環境の作り方
+# conda env create -f environment.yml
+# coda環境のアクティベート
+# conda activate traf_ana
+# conda環境の更新
+# conda env update -f environment.yml --prune
+
 name: traf_ana
 channels:
   - pytorch
@@ -42,6 +49,9 @@ dependencies:
 
   # Jupyter Notebook関連
   - jupyter
+
+  # パラメータをチューニングするためのOptuna
+  - optuna>=3.5.0
 
   # --- PIP Dependencies ---
   # Condaで見つからない、または特定ライブラリはここに入れます

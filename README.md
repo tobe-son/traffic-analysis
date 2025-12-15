@@ -160,3 +160,12 @@
 - [LogRatioLoss.py](https://github.com/sung-yeon-kim/Beyond-Binary-Supervision-CVPR19)（MITライセンス）
 - DCASE 2024 Challenge Task 10 Development Dataset [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10700792.svg)](https://doi.org/10.5281/zenodo.10700792)
 （CC BY-NC-SA 4.0）
+
+## 参考文献
+@inproceedings{djukanovic2022dataset,
+author = "Slobodan Djukanovi\'{c} and Nikola Bulatovi\'{c} and Ivana \v{C}avor",
+title = "A dataset for audio-video based vehicle speed estimation",
+booktitle = "2022 30th Telecommunications Forum (TELFOR)",
+year = "2022",
+pages = "1-4"
+}

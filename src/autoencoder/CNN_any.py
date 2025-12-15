@@ -9,7 +9,7 @@ import os
 import random
 import sys
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -50,7 +50,7 @@ DEFAULT_REPRESENTATION = {
 }
 
 
-def parse_args() -> argparse.Namespace:
+def build_parser() -> argparse.ArgumentParser:
 	parser = argparse.ArgumentParser(description="Train and visualise latent space of selectable CNN autoencoders.")
 	parser.add_argument("--model", choices=MODEL_REGISTRY.keys(), default="small", help="モデル種別を選択")
 	parser.add_argument("--data-selection", default="loc1-6", help="使用するデータ識別子 (例: loc1, loc1-6)")
@@ -69,7 +69,12 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument("--save-latent-space", action="store_true", help="潜在空間（CSV）を保存する")
 	parser.add_argument("--test-split", type=float, default=0.2)
 	parser.add_argument("--seed", type=int, default=42)
-	return parser.parse_args()
+	parser.add_argument("--skip-latent", action="store_true", help="Skip latent extraction/visualization (useful for HPO runs)")
+	return parser
+
+
+def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+	return build_parser().parse_args(argv)
 
 
 def log_hyperparameters(logger, params) -> None:
@@ -85,6 +90,24 @@ def train_one_epoch(model, loader, criterion, optimizer, device, label):
 		data = batch[0].to(device)
 		optimizer.zero_grad()
 		reconstruction = model(data)
+		# Align output to target size if shapes diverge (can happen with odd STFT shapes)
+		if reconstruction.shape != data.shape:
+			if reconstruction.dim() == 4:
+				reconstruction = torch.nn.functional.interpolate(
+					reconstruction,
+					size=data.shape[2:],
+					mode="bilinear",
+					align_corners=False,
+				)
+			elif reconstruction.dim() == 3:
+				reconstruction = torch.nn.functional.interpolate(
+					reconstruction,
+					size=data.shape[2:],
+					mode="linear",
+					align_corners=False,
+				)
+			else:
+				reconstruction = reconstruction
 		loss = criterion(reconstruction, data)
 		loss.backward()
 		optimizer.step()
@@ -99,6 +122,23 @@ def evaluate(model, loader, criterion, device):
 		for batch in loader:
 			data = batch[0].to(device)
 			reconstruction = model(data)
+			if reconstruction.shape != data.shape:
+				if reconstruction.dim() == 4:
+					reconstruction = torch.nn.functional.interpolate(
+						reconstruction,
+						size=data.shape[2:],
+						mode="bilinear",
+						align_corners=False,
+					)
+				elif reconstruction.dim() == 3:
+					reconstruction = torch.nn.functional.interpolate(
+						reconstruction,
+						size=data.shape[2:],
+						mode="linear",
+						align_corners=False,
+					)
+				else:
+					reconstruction = reconstruction
 			loss = criterion(reconstruction, data)
 			running_loss += loss.item()
 	return running_loss / max(len(loader), 1)
@@ -199,9 +239,14 @@ def resolve_representation(model_key: str, override: str | None) -> str:
 	return DEFAULT_REPRESENTATION.get(model_key, "spectrogram")
 
 
-def main() -> None:
-	args = parse_args()
 
+def train_autoencoder(args: argparse.Namespace, logger=None, enable_latent: bool = True, trial: Optional[object] = None) -> tuple[float, str]:
+	"""Train an autoencoder and optionally generate latent plots.
+
+	Returns
+	-------
+	(best_val_loss, output_dir)
+	"""
 	model_name = args.model
 	if model_name not in MODEL_REGISTRY:
 		raise ValueError(f"Unknown model key: {model_name}")
@@ -209,7 +254,7 @@ def main() -> None:
 	description, model_cls = MODEL_REGISTRY[model_name]
 	representation = resolve_representation(model_name, args.representation)
 
-	logger = output_settings()
+	logger = logger or output_settings()
 
 	hyperparameters = {
 		"MODEL": model_name,
@@ -289,48 +334,67 @@ def main() -> None:
 			val_loss,
 		)
 
+		if trial is not None:
+			try:
+				import optuna  # type: ignore[import-not-found]
+			except ImportError as exc:
+				raise RuntimeError("optuna must be installed when passing trial") from exc
+			trial.report(val_loss, step=epoch)
+			if trial.should_prune():
+				raise optuna.TrialPruned()
+
 		if val_loss < best_valid_loss:
 			best_valid_loss = val_loss
 			torch.save(model.state_dict(), os.path.join(logger.output_dir, f"best_model_{model_name}.pth"))
 			torch.save(optimizer.state_dict(), os.path.join(logger.output_dir, f"optimizer_{model_name}.pth"))
 			logger.info("Best model updated with validation loss %.4f", best_valid_loss)
 
-	latent_matrix, speeds, vehicle_types, directions, locations = extract_latent_spaces(
-		model,
-		[train_loader, val_loader],
-		device,
-	)
-	logger.info("潜在空間の抽出が完了しました。")
-
-	classes = (vehicle_types * 2) + directions
-	reduced_latent = reduce_latent_space(
-		latent_matrix,
-		classes,
-		args.visualization,
-		args.dimension,
-		args.seed,
-		logger,
-	)
-
-	if args.save_latent_space:
-		save_latent_results(latent_matrix, reduced_latent, logger.output_dir, args.dimension, logger)
-
-	save_metadata(speeds, vehicle_types, directions, locations, logger.output_dir, logger)
-
-	if args.dimension in (2, 3):
-		visualizer = LatentSpaceVisualizer(
-			dimension_latent_space=args.dimension,
-			latent_data=reduced_latent,
-			speeds=np.asarray(speeds),
-			vehicle_types=np.asarray(vehicle_types),
-			directions=np.asarray(directions),
-			locations=np.asarray(locations),
-			output_dir=logger.output_dir,
-			visualization=args.visualization,
+	if enable_latent and not args.skip_latent:
+		latent_matrix, speeds, vehicle_types, directions, locations = extract_latent_spaces(
+			model,
+			[train_loader, val_loader],
+			device,
 		)
-		visualizer.visualize_all(show_plot=False)
+		logger.info("潜在空間の抽出が完了しました。")
+
+		classes = (vehicle_types * 2) + directions
+		reduced_latent = reduce_latent_space(
+			latent_matrix,
+			classes,
+			args.visualization,
+			args.dimension,
+			args.seed,
+			logger,
+		)
+
+		if args.save_latent_space:
+			save_latent_results(latent_matrix, reduced_latent, logger.output_dir, args.dimension, logger)
+
+		save_metadata(speeds, vehicle_types, directions, locations, logger.output_dir, logger)
+
+		if args.dimension in (2, 3):
+			visualizer = LatentSpaceVisualizer(
+				dimension_latent_space=args.dimension,
+				latent_data=reduced_latent,
+				speeds=np.asarray(speeds),
+				vehicle_types=np.asarray(vehicle_types),
+				directions=np.asarray(directions),
+				locations=np.asarray(locations),
+				output_dir=logger.output_dir,
+				visualization=args.visualization,
+			)
+			visualizer.visualize_all(show_plot=False)
+		else:
+			logger.warning("Latent visualization is skipped because dimension is not 2 or 3.")
 	else:
-		logger.warning("Latent visualization is skipped because dimension is not 2 or 3.")
+		logger.info("Skipping latent extraction/visualization per configuration.")
+
+	return best_valid_loss, logger.output_dir
+
+
+def main() -> None:
+	args = parse_args()
+	train_autoencoder(args)
 
 
 if __name__ == "__main__":
