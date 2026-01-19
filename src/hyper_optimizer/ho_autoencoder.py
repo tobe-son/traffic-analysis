@@ -68,8 +68,8 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
     args.data_csv = cli_args.data_csv
     args.main_data_dir = cli_args.main_data_dir
 
-    # Slightly jitter seed per trial for robustness
-    args.seed = cli_args.seed + trial.number
+    # Keep seed fixed for strict reproducibility across trials
+    args.seed = cli_args.seed
 
     representation = CNN_any.resolve_representation(args.model, args.representation)
     hpo_space = load_hpo_space(cli_args.hpo_config)

@@ -1,8 +1,8 @@
 {
   "version": 1,
   "common": {
-    "batch_size": {"type": "categorical", "choices": [16, 32, 48, 64]},
-    "lr": {"type": "float", "low": 0.0001, "high": 0.005, "log": true},
+    "batch_size": {"type": "categorical", "choices": [8, 16, 32, 48, 64]},
+    "lr": {"type": "float", "low": 0.0001, "high": 0.01, "log": true},
     "epochs": {
       "type": "int",
       "low": {"from_cli": "min_epochs"},

@@ -24,6 +24,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
 補足:
 - `--storage sqlite:///outputs/hpo.db --study-name ae_hpo` を付けると途中再開・結果保存ができます
 - `--n-jobs` は並列 trial 数です（GPU 1枚の場合は基本 `1` 推奨）
+- `--seed` は固定seedです（デフォルト 42）。trial 間でも seed は変わりません。
 
 ---
 
