@@ -5,6 +5,11 @@
 """
 import os
 import numpy as np
+
+if os.environ.get("MPLBACKEND") is None:
+    import matplotlib
+
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D

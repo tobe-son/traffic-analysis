@@ -17,6 +17,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.append(str(SRC_ROOT))
 
 from autoencoder import CNN_any
+from hyper_optimizer.hpo_space import apply_hpo_space, load_hpo_space
 
 
 def parse_hpo_args() -> argparse.Namespace:
@@ -39,6 +40,16 @@ def parse_hpo_args() -> argparse.Namespace:
     parser.add_argument("--min-epochs", type=int, default=10)
     parser.add_argument("--max-epochs", type=int, default=40)
     parser.add_argument("--n-jobs", type=int, default=1, help="Parallel Optuna workers")
+
+    parser.add_argument(
+        "--hpo-config",
+        default=None,
+        help=(
+            "Optional JSON file describing which hyperparameters to optimize/fix. "
+            "See ./configs/optuna_autoencoder_hpo.json for a template. "
+            "If omitted, uses the built-in search space."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -61,14 +72,45 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
     args.seed = cli_args.seed + trial.number
 
     representation = CNN_any.resolve_representation(args.model, args.representation)
-    args.batch_size = trial.suggest_categorical("batch_size", [16, 32, 48, 64])
-    args.lr = trial.suggest_float("lr", 1e-4, 5e-3, log=True)
-    args.epochs = trial.suggest_int("epochs", cli_args.min_epochs, cli_args.max_epochs)
+    hpo_space = load_hpo_space(cli_args.hpo_config)
+    resolved = apply_hpo_space(
+        trial=trial,
+        cli_args=cli_args,
+        space=hpo_space,
+        representation=representation,
+    )
+
+    if resolved:
+        args.batch_size = int(resolved.get("batch_size", args.batch_size))
+        args.lr = float(resolved.get("lr", args.lr))
+        args.epochs = int(resolved.get("epochs", args.epochs))
+    else:
+        args.batch_size = trial.suggest_categorical("batch_size", [16, 32, 48, 64])
+        args.lr = trial.suggest_float("lr", 1e-4, 5e-3, log=True)
+        args.epochs = trial.suggest_int("epochs", cli_args.min_epochs, cli_args.max_epochs)
 
     if representation == "spectrogram":
-        args.n_fft = trial.suggest_categorical("n_fft", [512, 1024, 2048])
-        args.hop_length = trial.suggest_categorical("hop_length", [128, 256, 512])
-        args.mel = cli_args.mel or trial.suggest_categorical("mel", ["OFF", "ON"])
+        if resolved:
+            if "n_fft" in resolved:
+                args.n_fft = int(resolved["n_fft"])
+            else:
+                args.n_fft = trial.suggest_categorical("n_fft", [512, 1024, 2048])
+
+            if "hop_length" in resolved:
+                args.hop_length = int(resolved["hop_length"])
+            else:
+                args.hop_length = trial.suggest_categorical("hop_length", [128, 256, 512])
+
+            if cli_args.mel is not None:
+                args.mel = cli_args.mel
+            elif "mel" in resolved:
+                args.mel = str(resolved["mel"])
+            else:
+                args.mel = trial.suggest_categorical("mel", ["OFF", "ON"])
+        else:
+            args.n_fft = trial.suggest_categorical("n_fft", [512, 1024, 2048])
+            args.hop_length = trial.suggest_categorical("hop_length", [128, 256, 512])
+            args.mel = cli_args.mel or trial.suggest_categorical("mel", ["OFF", "ON"])
     else:
         # Waveform models ignore these; keep consistent types
         args.n_fft = 1024

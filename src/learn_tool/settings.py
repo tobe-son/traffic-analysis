@@ -3,6 +3,10 @@ import sys
 import pandas as pd
 import librosa
 import librosa.display
+if os.environ.get("MPLBACKEND") is None:
+    import matplotlib
+
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import logging

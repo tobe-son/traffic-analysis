@@ -9,6 +9,10 @@ import sys
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple, Type
 
+if os.environ.get("MPLBACKEND") is None:
+    import matplotlib
+
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -25,7 +29,7 @@ if str(SRC_ROOT) not in sys.path:
 from learn_tool.settings import output_settings, prepare_dataloader
 from metric.utils import describe_continuous, global_average_pool, set_global_seed
 from encoder.base_model import Encoder_Original, Encoder_Small, Encoder_Wave1D
-from encoder.new_model import Encoder_ResNet, Encoder_VGG11
+from encoder.new_model import Encoder_ResNet, Encoder_ResNet18, Encoder_ResNet50, Encoder_VGG11
 
 
 ModelEntry = Tuple[str, Type[torch.nn.Module], str]
@@ -35,7 +39,9 @@ MODEL_REGISTRY: Dict[str, ModelEntry] = {
     "small": ("Small CNN encoder", Encoder_Small, "spectrogram"),
     "original": ("Original CNN encoder", Encoder_Original, "spectrogram"),
     "vgg11": ("VGG11-based encoder", Encoder_VGG11, "spectrogram"),
-    "resnet": ("Residual CNN encoder", Encoder_ResNet, "spectrogram"),
+    "resnet": ("Residual CNN encoder (legacy)", Encoder_ResNet, "spectrogram"),
+    "resnet18": ("ResNet-18 encoder", Encoder_ResNet18, "spectrogram"),
+    "resnet50": ("ResNet-50 encoder", Encoder_ResNet50, "spectrogram"),
 }
 
 LOSS_REGISTRY: Dict[str, Type[nn.Module]] = {
@@ -240,17 +246,23 @@ def plot_scatter(actual: np.ndarray, predicted: np.ndarray, path: str, title: st
 
 
 def plot_loss_curve(train_losses: list[float], val_losses: list[float], output_dir: str, logger) -> None:
-    epochs = range(1, len(train_losses) + 1)
-    plt.figure()
-    plt.plot(epochs, train_losses, label="Train")
-    plt.plot(epochs, val_losses, label="Validation")
+    if len(train_losses) == 0 or len(val_losses) == 0:
+        logger.warning("Skip loss curve: no losses recorded (train=%d val=%d)", len(train_losses), len(val_losses))
+        return
+
+    epochs = list(range(1, len(train_losses) + 1))
+    # With a single epoch, a line without markers can look like a blank plot.
+    plt.figure(figsize=(7, 4))
+    plt.plot(epochs, train_losses, label="Train", marker="o", linewidth=1.5, markersize=4)
+    plt.plot(epochs, val_losses, label="Validation", marker="o", linewidth=1.5, markersize=4)
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Training / Validation Loss")
     plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.4)
     plt.tight_layout()
     path = os.path.join(output_dir, "loss_curve.png")
-    plt.savefig(path)
+    plt.savefig(path, dpi=150)
     plt.close()
     logger.info("Saved loss curve to %s", path)
 

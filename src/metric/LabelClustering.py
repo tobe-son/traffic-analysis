@@ -27,7 +27,7 @@ if str(SRC_ROOT) not in sys.path:
 from learn_tool.settings import output_settings, prepare_dataloader
 from learn_tool.visualize import LatentSpaceVisualizer
 from encoder.base_model import Encoder_Original, Encoder_Small, Encoder_Wave1D
-from encoder.new_model import Encoder_VGG11, Encoder_ResNet
+from encoder.new_model import Encoder_ResNet, Encoder_ResNet18, Encoder_ResNet50, Encoder_VGG11
 from loss.circle_loss import CircleLoss, convert_label_to_similarity
 from metric.utils import compute_stats_by_label, extract_embedding, set_global_seed
 
@@ -39,7 +39,9 @@ MODEL_REGISTRY: Dict[str, ModelEntry] = {
     "small": ("Small CNN encoder", Encoder_Small),
     "original": ("Original CNN encoder", Encoder_Original),
     "vgg11": ("VGG11-based encoder", Encoder_VGG11),
-    "resnet": ("Residual CNN encoder", Encoder_ResNet),
+    "resnet": ("Residual CNN encoder (legacy)", Encoder_ResNet),
+    "resnet18": ("ResNet-18 encoder", Encoder_ResNet18),
+    "resnet50": ("ResNet-50 encoder", Encoder_ResNet50),
 }
 
 DEFAULT_REPRESENTATION = {
@@ -48,6 +50,8 @@ DEFAULT_REPRESENTATION = {
     "original": "spectrogram",
     "vgg11": "spectrogram",
     "resnet": "spectrogram",
+    "resnet18": "spectrogram",
+    "resnet50": "spectrogram",
 }
 
 DEFAULT_HOP_LENGTH = {
@@ -56,6 +60,8 @@ DEFAULT_HOP_LENGTH = {
     "original": 160,
     "vgg11": 160,
     "resnet": 160,
+    "resnet18": 160,
+    "resnet50": 160,
 }
 
 

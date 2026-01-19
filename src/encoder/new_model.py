@@ -133,6 +133,94 @@ class AutoEncoder_VGG11(torch.nn.Module):
 CNN_resnet
 """
 
+
+class BasicBlock(torch.nn.Module):
+    expansion = 1
+
+    def __init__(self, in_channels: int, out_channels: int, stride: int = 1):
+        super().__init__()
+        self.conv1 = torch.nn.Conv2d(
+            in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False
+        )
+        self.bn1 = torch.nn.BatchNorm2d(out_channels)
+        self.conv2 = torch.nn.Conv2d(
+            out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False
+        )
+        self.bn2 = torch.nn.BatchNorm2d(out_channels)
+        self.relu = torch.nn.ReLU(inplace=True)
+
+        if stride != 1 or in_channels != out_channels:
+            self.downsample = torch.nn.Sequential(
+                torch.nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                torch.nn.BatchNorm2d(out_channels),
+            )
+        else:
+            self.downsample = None
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out = out + identity
+        out = self.relu(out)
+        return out
+
+
+class Bottleneck(torch.nn.Module):
+    expansion = 4
+
+    def __init__(self, in_channels: int, out_channels: int, stride: int = 1):
+        super().__init__()
+        width = out_channels
+        self.conv1 = torch.nn.Conv2d(in_channels, width, kernel_size=1, bias=False)
+        self.bn1 = torch.nn.BatchNorm2d(width)
+        self.conv2 = torch.nn.Conv2d(
+            width, width, kernel_size=3, stride=stride, padding=1, bias=False
+        )
+        self.bn2 = torch.nn.BatchNorm2d(width)
+        self.conv3 = torch.nn.Conv2d(width, out_channels * self.expansion, kernel_size=1, bias=False)
+        self.bn3 = torch.nn.BatchNorm2d(out_channels * self.expansion)
+        self.relu = torch.nn.ReLU(inplace=True)
+
+        out_channels_expanded = out_channels * self.expansion
+        if stride != 1 or in_channels != out_channels_expanded:
+            self.downsample = torch.nn.Sequential(
+                torch.nn.Conv2d(in_channels, out_channels_expanded, kernel_size=1, stride=stride, bias=False),
+                torch.nn.BatchNorm2d(out_channels_expanded),
+            )
+        else:
+            self.downsample = None
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out = out + identity
+        out = self.relu(out)
+        return out
+
 class ResidualBlock(torch.nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
@@ -205,6 +293,58 @@ class Encoder_ResNet(torch.nn.Module):
         if self._feature_shapes is None:
             raise ValueError("Encoder_ResNet forward must run before accessing feature_shapes.")
         return self._feature_shapes
+
+
+class _Encoder_ResNetBase(torch.nn.Module):
+    def __init__(
+        self,
+        block: type[torch.nn.Module],
+        layers: list[int],
+        stem_channels: int = 64,
+        out_channels: int = 32,
+    ):
+        super().__init__()
+
+        self.stem = torch.nn.Sequential(
+            torch.nn.Conv2d(1, stem_channels, kernel_size=3, stride=1, padding=1, bias=False),
+            torch.nn.BatchNorm2d(stem_channels),
+            torch.nn.ReLU(inplace=True),
+        )
+
+        self.inplanes = stem_channels
+        self.layer1 = self._make_layer(block, 64, layers[0], stride=1)
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+
+        final_in = 512 * getattr(block, "expansion", 1)
+        self.final_conv = torch.nn.Conv2d(final_in, out_channels, kernel_size=1)
+
+    def _make_layer(self, block: type[torch.nn.Module], planes: int, blocks: int, stride: int) -> torch.nn.Sequential:
+        layers = [block(self.inplanes, planes, stride=stride)]
+        self.inplanes = planes * getattr(block, "expansion", 1)
+        for _ in range(1, blocks):
+            layers.append(block(self.inplanes, planes, stride=1))
+        return torch.nn.Sequential(*layers)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.stem(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.final_conv(x)
+        return x
+
+
+class Encoder_ResNet18(_Encoder_ResNetBase):
+    def __init__(self):
+        super().__init__(block=BasicBlock, layers=[2, 2, 2, 2])
+
+
+class Encoder_ResNet50(_Encoder_ResNetBase):
+    def __init__(self):
+        super().__init__(block=Bottleneck, layers=[3, 4, 6, 3])
 
 class Decoder_ResNet(torch.nn.Module):
     def __init__(self):
