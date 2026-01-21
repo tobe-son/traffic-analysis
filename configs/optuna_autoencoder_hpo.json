@@ -5,12 +5,12 @@
     "lr": {"type": "float", "low": 0.0001, "high": 0.01, "log": true},
     "epochs": {
       "type": "int",
-      "low": {"from_cli": "min_epochs"},
-      "high": {"from_cli": "max_epochs"}
+      "low": 10,
+      "high": 1000
     }
   },
   "spectrogram": {
-    "n_fft": {"type": "categorical", "choices": [512, 1024, 2048]},
+    "n_fft": {"type": "categorical", "choices": [512, 1024, 2048, 4096]},
     "hop_length": {"type": "categorical", "choices": [128, 256, 512]},
     "mel": {"type": "categorical", "choices": ["OFF", "ON"]}
   }

@@ -80,11 +80,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument(
+        "--encoder-weights",
+        default=None,
+        help="Load encoder weights (.pth) before training / for --no-train mode.",
+    )
+    parser.add_argument(
+        "--no-train",
+        action="store_true",
+        help="Skip CircleLoss training and only extract embeddings + visualize.",
+    )
     parser.add_argument("--margin", type=float, default=0.25, help="CircleLoss のマージン値")
     parser.add_argument("--gamma", type=float, default=80.0, help="CircleLoss のスケーリング係数")
     parser.add_argument("--representation", choices=["waveform", "spectrogram"], default=None, help="入力表現。未指定時はモデル推奨を使用")
     parser.add_argument("--visualization", choices=["t-SNE", "PCA", "LDA", "UMAP", "MDS"], default="t-SNE")
     parser.add_argument("--dimension", type=int, default=2, help="潜在空間の可視化次元")
+    parser.add_argument(
+        "--max-points",
+        type=int,
+        default=0,
+        help="Downsample embeddings before visualization (0 = no limit). Useful for t-SNE speed.",
+    )
     parser.add_argument("--save-latent-space", action="store_true", help="潜在空間を CSV として保存する")
     parser.add_argument("--show-plot", action="store_true", help="3D 可視化を表示する")
     parser.add_argument("--test-split", type=float, default=0.2)
@@ -269,11 +285,14 @@ def main() -> None:
         "BATCH_SIZE": args.batch_size,
         "EPOCHS": args.epochs,
         "LEARNING_RATE": args.lr,
+        "ENCODER_WEIGHTS": args.encoder_weights or "(none)",
+        "NO_TRAIN": args.no_train,
         "MARGIN": args.margin,
         "GAMMA": args.gamma,
         "REPRESENTATION": representation,
         "VISUALIZATION": args.visualization,
         "DIMENSION_LATENT_SPACE": args.dimension,
+        "MAX_POINTS": args.max_points,
         "SAVE_LATENT_SPACE": args.save_latent_space,
         "SEED": args.seed,
     }
@@ -305,34 +324,49 @@ def main() -> None:
     )
 
     model = model_cls().to(device)
+    if args.encoder_weights:
+        weights_path = Path(args.encoder_weights)
+        try:
+            state = torch.load(weights_path, map_location=device, weights_only=True)
+        except TypeError:
+            state = torch.load(weights_path, map_location=device)
+        model.load_state_dict(state)
+        logger.info("Loaded encoder weights: %s", weights_path)
+
+    if args.no_train and not args.encoder_weights:
+        raise ValueError("--no-train requires --encoder-weights to be specified.")
+
     criterion = CircleLoss(m=args.margin, gamma=args.gamma).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    best_val_loss = float("inf")
-    best_epoch = -1
+    if not args.no_train:
+        best_val_loss = float("inf")
+        best_epoch = -1
 
-    for epoch in range(args.epochs):
-        epoch_label = f"Train Epoch {epoch + 1}/{args.epochs}"
-        train_loss = train_one_epoch(model, train_loader, optimizer, device, criterion, epoch_label)
-        val_loss = evaluate(model, val_loader, device, criterion)
+        for epoch in range(args.epochs):
+            epoch_label = f"Train Epoch {epoch + 1}/{args.epochs}"
+            train_loss = train_one_epoch(model, train_loader, optimizer, device, criterion, epoch_label)
+            val_loss = evaluate(model, val_loader, device, criterion)
 
-        logger.info(
-            "Epoch [%d/%d] train_loss=%.4f val_loss=%s",
-            epoch + 1,
-            args.epochs,
-            train_loss,
-            f"{val_loss:.4f}" if math.isfinite(val_loss) else "nan",
-        )
+            logger.info(
+                "Epoch [%d/%d] train_loss=%.4f val_loss=%s",
+                epoch + 1,
+                args.epochs,
+                train_loss,
+                f"{val_loss:.4f}" if math.isfinite(val_loss) else "nan",
+            )
 
-        if math.isfinite(val_loss) and val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_epoch = epoch + 1
-            torch.save(model.state_dict(), os.path.join(logger.output_dir, f"best_encoder_{model_key}.pth"))
-            torch.save(optimizer.state_dict(), os.path.join(logger.output_dir, f"optimizer_{model_key}.pth"))
-            logger.info("Best model updated (epoch %d, val_loss=%.4f)", best_epoch, best_val_loss)
+            if math.isfinite(val_loss) and val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_epoch = epoch + 1
+                torch.save(model.state_dict(), os.path.join(logger.output_dir, f"best_encoder_{model_key}.pth"))
+                torch.save(optimizer.state_dict(), os.path.join(logger.output_dir, f"optimizer_{model_key}.pth"))
+                logger.info("Best model updated (epoch %d, val_loss=%.4f)", best_epoch, best_val_loss)
 
-    torch.save(model.state_dict(), os.path.join(logger.output_dir, f"last_encoder_{model_key}.pth"))
-    logger.info("Last model checkpoint saved. Best epoch=%s", best_epoch if best_epoch > 0 else "N/A")
+        torch.save(model.state_dict(), os.path.join(logger.output_dir, f"last_encoder_{model_key}.pth"))
+        logger.info("Last model checkpoint saved. Best epoch=%s", best_epoch if best_epoch > 0 else "N/A")
+    else:
+        logger.info("Skipping training (--no-train). Extracting embeddings only.")
 
     latent_matrix, speeds, vehicle_types, directions, locations = collect_embeddings(
         model,
@@ -340,6 +374,17 @@ def main() -> None:
         device,
     )
     logger.info("潜在空間の抽出が完了しました。")
+
+    if args.max_points and args.max_points > 0 and latent_matrix.shape[0] > args.max_points:
+        rng = np.random.default_rng(args.seed)
+        keep = rng.choice(latent_matrix.shape[0], size=args.max_points, replace=False)
+        keep.sort()
+        latent_matrix = latent_matrix[keep]
+        speeds = speeds[keep]
+        vehicle_types = vehicle_types[keep]
+        directions = directions[keep]
+        locations = locations[keep]
+        logger.info("Downsampled embeddings to %d points for visualization.", args.max_points)
 
     classes = (vehicle_types * 2) + directions
     reduced_latent = reduce_latent_space(

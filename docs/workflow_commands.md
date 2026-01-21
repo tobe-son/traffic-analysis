@@ -214,6 +214,24 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/Labe
   --visualization PCA
 ```
 
+（学習せずに t-SNE だけ見たい場合: 推論/可視化モード）:
+
+```bash
+MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/LabelClustering.py \
+  --model small \
+  --encoder-weights ./outputs/<日付>/<時刻>/best_encoder_small.pth \
+  --no-train \
+  --data-csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
+  --main-data-dir ./data/processed/real/idmt_traffic \
+  --data-selection loc1-6 \
+  --batch-size 64 \
+  --visualization t-SNE \
+  --dimension 2 \
+  --max-points 3000
+```
+
+※IDMT のサンプル数が多い場合、t-SNE は重くなりやすいので `--max-points` で間引くのがおすすめです。
+
 ### 5-B) VS13（速度推定）
 
 `speedPrediction.py` は、**事前学習済み encoder weights**（例: `best_encoder_small.pth`）を読み込み、MLP回帰（＋必要ならencoder微調整）を行います。
