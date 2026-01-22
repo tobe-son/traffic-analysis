@@ -130,3 +130,72 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
 
 - 各 trial は `outputs/<日付>/<時刻>/` に成果物を出力します
 - Optuna の best trial では、コンソールに `Best params` と `Artifacts in: ...` が表示されます
+- Optuna 実行後、best trial の `Artifacts in: ...` に以下も自動保存されます:
+	- `optuna_best.json`: best trial の値/params + 実行メタ情報（seed, hpo-config, argv など）
+	- `optuna_best_params.json`: best params だけ（再利用しやすい）
+	- `optuna_trials.csv`: 全 trial の一覧（state/value/params など）
+
+---
+
+# Optuna（CircleLoss/距離学習のハイパーパラメータ最適化）
+
+AutoEncoder とは別に、CircleLoss を用いた深層距離学習（`src/metric/LabelClustering.py`）も Optuna で最適化できます。
+
+- 実行スクリプト: `src/hyper_optimizer/ho_labelclustering.py`
+- 学習本体: `src/metric/LabelClustering.py`
+
+## 1. 基本実行
+
+```bash
+MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering.py \
+	--model small \
+	--data-selection loc1-6 \
+	--data-csv ./data/processed/datasets/data_1-6.csv \
+	--main-data-dir ./data/processed/datasets \
+	--n-trials 20 \
+	--min-epochs 10 \
+	--max-epochs 60 \
+	--pruner median \
+	--storage sqlite:///outputs/hpo_labelclustering.db \
+	--study-name lc_small_loc1-6
+```
+
+補足:
+- `--seed` は固定seedです（デフォルト 42）。trial 間でも seed は変わりません。
+- `--save-checkpoints` を付けると trial ごとに encoder 重みも保存します（ディスク増えます）。
+
+## 2. 探索する項目（デフォルト）
+
+`src/hyper_optimizer/ho_labelclustering.py` の `objective()` 内で `trial.suggest_*` している項目が探索対象です。
+
+- 共通: `batch_size`, `lr`, `epochs`, `margin`, `gamma`
+- スペクトログラム時のみ: `n_fft`, `hop_length`, `mel`
+
+## 3. 探索空間を JSON で制御する（おすすめ）
+
+テンプレ: `./configs/optuna_labelclustering_hpo.json`
+
+```bash
+MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering.py \
+	--model small \
+	--data-selection loc1-6 \
+	--data-csv ./data/processed/datasets/data_1-6.csv \
+	--main-data-dir ./data/processed/datasets \
+	--n-trials 20 \
+	--min-epochs 10 \
+	--max-epochs 60 \
+	--hpo-config ./configs/optuna_labelclustering_hpo.json \
+	--storage sqlite:///outputs/hpo_labelclustering.db \
+	--study-name lc_small_loc1-6
+```
+
+JSON の書き方は AutoEncoder と同じです（`fixed` / `categorical` / `float` / `int` / `from_cli`）。
+
+## 4. 出力（最適化したハイパパラメータのログ）
+
+Optuna 実行後、best trial の `Artifacts in: ...` に以下が保存されます:
+
+- `optuna_best.json`
+- `optuna_best_params.json`
+- `optuna_trials.csv`
+

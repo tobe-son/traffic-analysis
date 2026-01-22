@@ -154,6 +154,26 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
 - `epochs`: `--min-epochs`〜`--max-epochs`
 - スペクトログラム時: `n_fft`, `hop_length`, `mel`
 
+### 3-3) Optuna（CircleLoss/距離学習: 車種分類の表現学習）
+
+`src/hyper_optimizer/ho_labelclustering.py` は `src/metric/LabelClustering.py`（CircleLoss）を Optuna で最適化します。
+
+```bash
+MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering.py \
+  --model small \
+  --data-selection loc1-6 \
+  --data-csv ./data/processed/datasets/data_1-6.csv \
+  --main-data-dir ./data/processed/datasets \
+  --n-trials 30 \
+  --min-epochs 10 \
+  --max-epochs 60 \
+  --hpo-config ./configs/optuna_labelclustering_hpo.json \
+  --storage sqlite:///outputs/hpo_labelclustering.db \
+  --study-name lc_small_loc1-6 \
+  --pruner median \
+  --n-jobs 1
+```
+
 ---
 
 ## 4. 実データの前処理（VS13/IDMT）

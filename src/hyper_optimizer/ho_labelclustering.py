@@ -1,0 +1,504 @@
+"""Optuna-based HPO for CircleLoss metric learning (LabelClustering).
+
+This script runs metric learning (CircleLoss) using the training logic in
+``src/metric/LabelClustering.py`` and optimizes the validation CircleLoss.
+
+Notes
+-----
+- By default this script does *not* run latent extraction/visualization to keep
+  trials fast.
+- It keeps the random seed fixed (default: 42) for reproducibility across trials.
+"""
+
+from __future__ import annotations
+
+import argparse
+import math
+import sys
+from pathlib import Path
+from typing import Optional
+
+import optuna
+from optuna import distributions as optuna_distributions
+import torch
+import torch.optim as optim
+
+# Allow imports from the src directory
+SRC_ROOT = Path(__file__).resolve().parents[1]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.append(str(SRC_ROOT))
+
+from learn_tool.settings import output_settings, prepare_dataloader
+from hyper_optimizer.hpo_space import apply_hpo_space, load_hpo_space
+from hyper_optimizer.optuna_artifacts import default_fallback_output_dir, export_study
+from loss.circle_loss import CircleLoss
+from metric.LabelClustering import (
+    DEFAULT_HOP_LENGTH,
+    DEFAULT_REPRESENTATION,
+    MODEL_REGISTRY,
+    evaluate,
+    log_hyperparameters,
+    resolve_hop_length,
+    resolve_representation,
+    set_global_seed,
+    train_one_epoch,
+)
+
+
+def parse_hpo_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Optuna-based HPO for CircleLoss metric learning")
+
+    parser.add_argument("--model", choices=MODEL_REGISTRY.keys(), default="small")
+    parser.add_argument("--representation", choices=["waveform", "spectrogram"], default=None)
+    parser.add_argument("--data-selection", default="loc1-6")
+    parser.add_argument("--data-csv", default="./data/processed/datasets/data_1-6.csv")
+    parser.add_argument("--main-data-dir", default="./data/processed/datasets")
+    parser.add_argument("--mel", choices=["ON", "OFF"], default=None)
+
+    parser.add_argument("--sampling-rate", type=int, default=16000)
+    parser.add_argument("--n-fft", type=int, default=1024)
+    parser.add_argument("--hop-length", type=int, default=None,
+                        help="If provided, fixes hop_length. If omitted and representation is spectrogram, Optuna may tune it.")
+
+    # Fixed (optional) overrides; if omitted they are tuned.
+    parser.add_argument("--margin", type=float, default=None, help="Fix CircleLoss margin (otherwise tuned)")
+    parser.add_argument("--gamma", type=float, default=None, help="Fix CircleLoss gamma (otherwise tuned)")
+
+    parser.add_argument("--n-trials", type=int, default=20)
+    parser.add_argument("--timeout", type=int, default=None)
+    parser.add_argument("--study-name", default=None)
+    parser.add_argument("--storage", default=None)
+    parser.add_argument("--pruner", choices=["none", "median"], default="median")
+    parser.add_argument("--seed", type=int, default=42)
+
+    parser.add_argument(
+        "--reset-study",
+        action="store_true",
+        help=(
+            "Delete an existing study (same --study-name/--storage) before starting. "
+            "Useful when you changed the HPO search space and Optuna refuses to resume."
+        ),
+    )
+
+    parser.add_argument("--min-epochs", type=int, default=10)
+    parser.add_argument("--max-epochs", type=int, default=60)
+    parser.add_argument("--test-split", type=float, default=0.2)
+
+    parser.add_argument("--n-jobs", type=int, default=1)
+
+    parser.add_argument(
+        "--save-checkpoints",
+        action="store_true",
+        help="Save best/last encoder weights per trial (can consume disk).",
+    )
+
+    parser.add_argument(
+        "--hpo-config",
+        default=None,
+        help=(
+            "Optional JSON file describing which hyperparameters to optimize/fix. "
+            "See ./configs/optuna_labelclustering_hpo.json for a template. "
+            "If omitted, uses the built-in search space."
+        ),
+    )
+
+    return parser.parse_args()
+
+
+def _build_expected_distributions(
+    *,
+    cli_args: argparse.Namespace,
+    representation: str,
+) -> dict[str, optuna_distributions.BaseDistribution]:
+    """Build expected Optuna distributions for this run.
+
+    This is used to detect incompatible changes when resuming an existing study.
+    """
+
+    expected: dict[str, optuna_distributions.BaseDistribution] = {}
+
+    def _resolve_from_cli(value: object) -> object:
+        if isinstance(value, dict) and "from_cli" in value:
+            attr = value["from_cli"]
+            if not hasattr(cli_args, attr):
+                raise ValueError(f"HPO config requested from_cli='{attr}', but CLI args has no such attribute")
+            return getattr(cli_args, attr)
+        return value
+
+    hpo_space = load_hpo_space(cli_args.hpo_config)
+    if hpo_space is not None:
+        # Common
+        for name, spec in hpo_space.common.items():
+            spec_type = spec.get("type")
+            if spec_type == "fixed":
+                continue
+            if spec_type == "categorical":
+                expected[name] = optuna_distributions.CategoricalDistribution(choices=spec.get("choices"))
+            elif spec_type == "float":
+                low = float(_resolve_from_cli(spec.get("low")))
+                high = float(_resolve_from_cli(spec.get("high")))
+                expected[name] = optuna_distributions.FloatDistribution(low=low, high=high, log=bool(spec.get("log", False)))
+            elif spec_type == "int":
+                low = int(_resolve_from_cli(spec.get("low")))
+                high = int(_resolve_from_cli(spec.get("high")))
+                expected[name] = optuna_distributions.IntDistribution(low=low, high=high)
+            else:
+                raise ValueError(f"Unsupported HPO config spec type for '{name}': {spec_type}")
+
+        # Representation-specific
+        if representation == "spectrogram":
+            for name, spec in hpo_space.spectrogram.items():
+                spec_type = spec.get("type")
+                if spec_type == "fixed":
+                    continue
+                if spec_type == "categorical":
+                    expected[name] = optuna_distributions.CategoricalDistribution(choices=spec.get("choices"))
+                elif spec_type == "float":
+                    low = float(_resolve_from_cli(spec.get("low")))
+                    high = float(_resolve_from_cli(spec.get("high")))
+                    expected[name] = optuna_distributions.FloatDistribution(low=low, high=high, log=bool(spec.get("log", False)))
+                elif spec_type == "int":
+                    low = int(_resolve_from_cli(spec.get("low")))
+                    high = int(_resolve_from_cli(spec.get("high")))
+                    expected[name] = optuna_distributions.IntDistribution(low=low, high=high)
+                else:
+                    raise ValueError(f"Unsupported HPO config spec type for 'spectrogram.{name}': {spec_type}")
+
+        return expected
+
+    # Built-in search space (mirrors objective()).
+    expected["batch_size"] = optuna_distributions.CategoricalDistribution(choices=[16, 32, 48, 64])
+    expected["lr"] = optuna_distributions.FloatDistribution(low=1e-4, high=5e-3, log=True)
+    expected["epochs"] = optuna_distributions.IntDistribution(low=int(cli_args.min_epochs), high=int(cli_args.max_epochs))
+
+    if cli_args.margin is None:
+        expected["margin"] = optuna_distributions.FloatDistribution(low=0.1, high=0.4, log=False)
+    if cli_args.gamma is None:
+        expected["gamma"] = optuna_distributions.FloatDistribution(low=16.0, high=128.0, log=True)
+
+    if representation == "spectrogram":
+        expected["n_fft"] = optuna_distributions.CategoricalDistribution(choices=[512, 1024, 2048])
+        if cli_args.hop_length is None:
+            # This mirrors _resolve_trial_hop_length() for small/vgg models; includes base value.
+            base = DEFAULT_HOP_LENGTH.get(cli_args.model, 512)
+            candidates = sorted({base, 128, 160, 256, 320, 512})
+            expected["hop_length"] = optuna_distributions.CategoricalDistribution(choices=candidates)
+        if cli_args.mel is None:
+            expected["mel"] = optuna_distributions.CategoricalDistribution(choices=["OFF", "ON"])
+
+    return expected
+
+
+def _ensure_study_compatible(
+    *,
+    study: optuna.Study,
+    expected: dict[str, optuna_distributions.BaseDistribution],
+) -> None:
+    """Fail fast with an actionable error if resuming is incompatible."""
+
+    # Find any previous distribution recorded for each param.
+    previous: dict[str, optuna_distributions.BaseDistribution] = {}
+    for t in study.trials:
+        for name, dist in t.distributions.items():
+            if name not in previous:
+                previous[name] = dist
+
+    for name, exp_dist in expected.items():
+        prev_dist = previous.get(name)
+        if prev_dist is None:
+            continue
+        try:
+            optuna.distributions.check_distribution_compatibility(prev_dist, exp_dist)
+        except ValueError as exc:
+            raise RuntimeError(
+                "既存の Optuna study を再開できません（探索空間が過去と互換ではありません）。\n"
+                f"- study: {study.study_name}\n"
+                f"- param: {name}\n"
+                f"- previous: {prev_dist}\n"
+                f"- current: {exp_dist}\n"
+                "対処: (A) --study-name を変える / (B) --reset-study を付けて既存 study を削除してやり直す\n"
+                "例: python -c \"import optuna; optuna.delete_study(study_name='NAME', storage='sqlite:///PATH.db')\"\n"
+                f"detail: {exc}"
+            )
+
+
+def build_pruner(name: str) -> optuna.pruners.BasePruner:
+    if name == "median":
+        return optuna.pruners.MedianPruner(n_startup_trials=2, n_warmup_steps=2)
+    return optuna.pruners.NopPruner()
+
+
+def _resolve_trial_hop_length(
+    *,
+    trial: optuna.Trial,
+    model_key: str,
+    representation: str,
+    cli_hop_length: Optional[int],
+) -> int:
+    if cli_hop_length is not None:
+        return int(cli_hop_length)
+
+    base = DEFAULT_HOP_LENGTH.get(model_key, 512)
+
+    # Only tune hop_length for spectrogram representations.
+    if representation != "spectrogram":
+        return int(base)
+
+    # Search around common values; keep base as a candidate.
+    candidates = sorted({base, 128, 160, 256, 320, 512})
+    return int(trial.suggest_categorical("hop_length", candidates))
+
+
+def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
+    model_key = cli_args.model
+    description, model_cls = MODEL_REGISTRY[model_key]
+
+    representation = resolve_representation(model_key, cli_args.representation or DEFAULT_REPRESENTATION.get(model_key))
+
+    hpo_space = load_hpo_space(cli_args.hpo_config)
+    resolved = apply_hpo_space(
+        trial=trial,
+        cli_args=cli_args,
+        space=hpo_space,
+        representation=representation,
+    )
+
+    # Fixed seed for reproducibility across trials
+    set_global_seed(cli_args.seed)
+
+    if resolved:
+        if "batch_size" in resolved:
+            batch_size = int(resolved["batch_size"])
+        else:
+            batch_size = int(trial.suggest_categorical("batch_size", [16, 32, 48, 64]))
+
+        if "lr" in resolved:
+            lr = float(resolved["lr"])
+        else:
+            lr = float(trial.suggest_float("lr", 1e-4, 5e-3, log=True))
+
+        if "epochs" in resolved:
+            epochs = int(resolved["epochs"])
+        else:
+            epochs = int(trial.suggest_int("epochs", cli_args.min_epochs, cli_args.max_epochs))
+    else:
+        batch_size = int(trial.suggest_categorical("batch_size", [16, 32, 48, 64]))
+        lr = float(trial.suggest_float("lr", 1e-4, 5e-3, log=True))
+        epochs = int(trial.suggest_int("epochs", cli_args.min_epochs, cli_args.max_epochs))
+
+    if cli_args.margin is not None:
+        margin = float(cli_args.margin)
+    elif resolved and "margin" in resolved:
+        margin = float(resolved["margin"])
+    else:
+        margin = float(trial.suggest_float("margin", 0.1, 0.4))
+
+    if cli_args.gamma is not None:
+        gamma = float(cli_args.gamma)
+    elif resolved and "gamma" in resolved:
+        gamma = float(resolved["gamma"])
+    else:
+        gamma = float(trial.suggest_float("gamma", 16.0, 128.0, log=True))
+
+    mel = cli_args.mel
+
+    if representation == "spectrogram":
+        if resolved and "n_fft" in resolved:
+            n_fft = int(resolved["n_fft"])
+        else:
+            n_fft = int(trial.suggest_categorical("n_fft", [512, 1024, 2048]))
+
+        if cli_args.hop_length is not None:
+            hop_length = int(cli_args.hop_length)
+        elif resolved and "hop_length" in resolved:
+            hop_length = int(resolved["hop_length"])
+        else:
+            hop_length = _resolve_trial_hop_length(
+                trial=trial,
+                model_key=model_key,
+                representation=representation,
+                cli_hop_length=cli_args.hop_length,
+            )
+
+        if mel is None:
+            if resolved and "mel" in resolved:
+                mel = str(resolved["mel"])
+            else:
+                mel = str(trial.suggest_categorical("mel", ["OFF", "ON"]))
+    else:
+        # Waveform models ignore these; keep consistent types
+        n_fft = int(cli_args.n_fft)
+        hop_length = resolve_hop_length(model_key, cli_args.hop_length)
+        mel = "OFF"
+
+    # Create an output dir per trial (fast logging, optional checkpoints)
+    logger = output_settings()
+
+    hyperparameters = {
+        "MODEL": model_key,
+        "MODEL_DESCRIPTION": description,
+        "DATA_SELECTION": cli_args.data_selection,
+        "DATA_CSV_PATH": cli_args.data_csv,
+        "MAIN_DATA_DIR": cli_args.main_data_dir,
+        "MEL": mel,
+        "SAMPLING_RATE": cli_args.sampling_rate,
+        "N_FFT": n_fft,
+        "HOP_LENGTH": hop_length,
+        "TEST_DATASET_PERCENTAGE": cli_args.test_split,
+        "BATCH_SIZE": batch_size,
+        "EPOCHS": epochs,
+        "LEARNING_RATE": lr,
+        "MARGIN": margin,
+        "GAMMA": gamma,
+        "REPRESENTATION": representation,
+        "SEED": cli_args.seed,
+        "HPO_CONFIG": cli_args.hpo_config or "(none)",
+    }
+    log_hyperparameters(logger, hyperparameters)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info("Using device: %s", device)
+
+    train_loader, val_loader, feature_min, feature_max = prepare_dataloader(
+        logger=logger,
+        hop_length=hop_length,
+        batch_size=batch_size,
+        data_csv_path=cli_args.data_csv,
+        main_data_dir=cli_args.main_data_dir,
+        n_fft=n_fft,
+        data_num=cli_args.data_selection,
+        mel=mel,
+        sampling_rate=cli_args.sampling_rate,
+        test_split=cli_args.test_split,
+        seed=cli_args.seed,
+        representation=representation,
+    )
+    logger.info(
+        "データの準備が完了しました。feature_min=%.6f feature_max=%.6f",
+        feature_min,
+        feature_max,
+    )
+
+    model = model_cls().to(device)
+    criterion = CircleLoss(m=margin, gamma=gamma).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    best_val_loss = float("inf")
+    best_epoch = -1
+
+    for epoch in range(epochs):
+        epoch_label = f"Train Epoch {epoch + 1}/{epochs}"
+        try:
+            _train_loss = train_one_epoch(model, train_loader, optimizer, device, criterion, epoch_label)
+        except RuntimeError as exc:
+            # No valid batches -> this configuration is not usable
+            logger.error("Trial failed during training: %s", exc)
+            return float("inf")
+
+        val_loss = evaluate(model, val_loader, device, criterion)
+
+        if math.isfinite(val_loss):
+            trial.report(val_loss, epoch)
+            if trial.should_prune():
+                raise optuna.TrialPruned()
+
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_epoch = epoch + 1
+                if cli_args.save_checkpoints:
+                    torch.save(model.state_dict(), Path(logger.output_dir) / f"best_encoder_{model_key}.pth")
+
+    if cli_args.save_checkpoints:
+        torch.save(model.state_dict(), Path(logger.output_dir) / f"last_encoder_{model_key}.pth")
+
+    trial.set_user_attr("output_dir", logger.output_dir)
+    trial.set_user_attr("best_epoch", best_epoch)
+
+    return float(best_val_loss)
+
+
+def main() -> None:
+    cli_args = parse_hpo_args()
+
+    sampler = optuna.samplers.TPESampler(seed=cli_args.seed)
+    pruner = build_pruner(cli_args.pruner)
+
+    if cli_args.reset_study:
+        if not cli_args.storage or not cli_args.study_name:
+            raise ValueError("--reset-study には --storage と --study-name の両方が必要です")
+        try:
+            optuna.delete_study(study_name=cli_args.study_name, storage=cli_args.storage)
+        except KeyError:
+            # Study did not exist; proceed.
+            pass
+
+    study = optuna.create_study(
+        direction="minimize",
+        sampler=sampler,
+        pruner=pruner,
+        storage=cli_args.storage,
+        study_name=cli_args.study_name,
+        load_if_exists=True,
+    )
+
+    # Fail fast if resuming an existing study with an incompatible search space.
+    try:
+        model_key = cli_args.model
+        representation = resolve_representation(model_key, cli_args.representation or DEFAULT_REPRESENTATION.get(model_key))
+        expected = _build_expected_distributions(cli_args=cli_args, representation=representation)
+        _ensure_study_compatible(study=study, expected=expected)
+    except Exception:
+        # Re-raise as-is to keep messages clear; do not silently ignore.
+        raise
+
+    study.optimize(
+        lambda trial: objective(trial, cli_args),
+        n_trials=cli_args.n_trials,
+        timeout=cli_args.timeout,
+        n_jobs=cli_args.n_jobs,
+        show_progress_bar=False,
+    )
+
+    best = study.best_trial
+    print("Best validation loss:", float(best.value))
+    print("Best params:")
+    for k, v in best.params.items():
+        print(f"  {k}: {v}")
+
+    output_dir = best.user_attrs.get("output_dir")
+    out_path = Path(output_dir) if output_dir else default_fallback_output_dir(study_name=study.study_name)
+
+    meta = {
+        "model": cli_args.model,
+        "representation": cli_args.representation,
+        "data_selection": cli_args.data_selection,
+        "data_csv": cli_args.data_csv,
+        "main_data_dir": cli_args.main_data_dir,
+        "mel": cli_args.mel,
+        "sampling_rate": cli_args.sampling_rate,
+        "n_fft": cli_args.n_fft,
+        "hop_length": cli_args.hop_length,
+        "min_epochs": cli_args.min_epochs,
+        "max_epochs": cli_args.max_epochs,
+        "test_split": cli_args.test_split,
+        "seed": cli_args.seed,
+        "hpo_config": cli_args.hpo_config,
+        "pruner": cli_args.pruner,
+        "n_jobs": cli_args.n_jobs,
+        "save_checkpoints": cli_args.save_checkpoints,
+        "argv": sys.argv,
+    }
+
+    best_json_path = export_study(
+        study=study,
+        output_dir=out_path,
+        storage=cli_args.storage,
+        meta=meta,
+    )
+
+    print("Artifacts in:", str(out_path))
+    print("Optuna summary:", str(best_json_path))
+
+
+if __name__ == "__main__":
+    main()

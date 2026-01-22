@@ -18,6 +18,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from autoencoder import CNN_any
 from hyper_optimizer.hpo_space import apply_hpo_space, load_hpo_space
+from hyper_optimizer.optuna_artifacts import default_fallback_output_dir, export_study
 
 
 def parse_hpo_args() -> argparse.Namespace:
@@ -158,9 +159,34 @@ def main() -> None:
     print("Best params:")
     for k, v in best.params.items():
         print(f"  {k}: {v}")
-    output_dir = best.user_attrs.get("output_dir")
-    if output_dir:
-        print("Artifacts in:", output_dir)
+        output_dir = best.user_attrs.get("output_dir")
+        out_path = Path(output_dir) if output_dir else default_fallback_output_dir(study_name=cli_args.study_name)
+
+        meta = {
+            "model": cli_args.model,
+            "representation": cli_args.representation,
+            "data_selection": cli_args.data_selection,
+            "data_csv": cli_args.data_csv,
+            "main_data_dir": cli_args.main_data_dir,
+            "mel": cli_args.mel,
+            "min_epochs": cli_args.min_epochs,
+            "max_epochs": cli_args.max_epochs,
+            "seed": cli_args.seed,
+            "hpo_config": cli_args.hpo_config,
+            "pruner": cli_args.pruner,
+            "n_jobs": cli_args.n_jobs,
+            "argv": sys.argv,
+        }
+
+        best_json_path = export_study(
+            study=study,
+            output_dir=out_path,
+            storage=cli_args.storage,
+            meta=meta,
+        )
+
+        print("Artifacts in:", str(out_path))
+        print("Optuna summary:", str(best_json_path))
 
 
 if __name__ == "__main__":

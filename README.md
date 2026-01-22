@@ -63,10 +63,15 @@
 
 以下の手順で環境をセットアップし、プログラムを実行してください。
 
+> 2026-01 更新: 本リポジトリの最新の再現手順（simulation→Optuna→実データ推論/評価）は
+> `docs/workflow_commands.md` を参照してください。
+> Optuna の探索空間を JSON で管理する方法（AutoEncoder / CircleLoss）は `docs/optuna.md` を参照してください。
+> テンプレ: `configs/optuna_autoencoder_hpo.json`, `configs/optuna_labelclustering_hpo.json`
+
 1. **リポジトリのクローン**  
     ```bash
     git clone https://github.com/tobe-son/traffic-analysis.git
-    cd traffic-acoustic-analysis
+  cd traffic-analysis
     ```
 
 2. **依存パッケージのインストール**  
@@ -78,7 +83,7 @@
 
    **環境構築手順:**  
    ```bash
-   conda env create -f environmenet.yml
+  conda env create -f environment.yml
    conda activate traf_ana
    ```
    ただし、Condaの環境が導入され、CUDAのバージョンは12.1以上であることが前提です。

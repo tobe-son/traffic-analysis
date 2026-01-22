@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "common": {
+    "batch_size": {"type": "categorical", "choices": [8, 16, 32, 48, 64]},
+    "lr": {"type": "float", "low": 0.0001, "high": 0.01, "log": true},
+    "epochs": {
+      "type": "int",
+      "low": {"from_cli": "min_epochs"},
+      "high": {"from_cli": "max_epochs"}
+    },
+    "margin": {"type": "float", "low": 0.1, "high": 0.4, "log": false},
+    "gamma": {"type": "float", "low": 16.0, "high": 128.0, "log": true}
+  },
+  "spectrogram": {
+    "n_fft": {"type": "categorical", "choices": [512, 1024, 2048]},
+    "hop_length": {"type": "categorical", "choices": [128, 160, 256, 320, 512]},
+    "mel": {"type": "categorical", "choices": ["OFF", "ON"]}
+  }
+}
