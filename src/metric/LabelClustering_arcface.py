@@ -9,6 +9,10 @@ import sys
 from pathlib import Path
 from typing import Dict, Tuple, Type
 
+SRC_ROOT = Path(__file__).resolve().parents[1]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.append(str(SRC_ROOT))
+
 import numpy as np
 import pandas as pd
 import torch
@@ -20,11 +24,6 @@ import umap  # type: ignore
 from tqdm import tqdm
 
 from loss.arcface import ArcFaceLayer
-
-
-SRC_ROOT = Path(__file__).resolve().parents[1]
-if str(SRC_ROOT) not in sys.path:
-    sys.path.append(str(SRC_ROOT))
 
 from learn_tool.settings import output_settings, prepare_dataloader
 from learn_tool.visualize import LatentSpaceVisualizer
@@ -282,12 +281,14 @@ def get_embedding_dim(model, device, args):
             return 512 # Default fallback
 
 # ArcFace用の学習ステップ関数
-def train_one_epoch_arcface(model, metric_fc, loader, optimizer, device, criterion, epoch_label: str) -> float:
+def train_one_epoch_arcface(model, metric_fc, loader, optimizer, device, criterion, epoch_label: str) -> tuple[float, float]:
     model.train()
     metric_fc.train() # ArcFaceレイヤーも学習モード
     
     total_loss = 0.0
     usable_batches = 0
+    total_correct = 0
+    total_samples = 0
     
     for batch in tqdm(loader, desc=epoch_label):
         data, _speed, vtype, direc, _loc = batch
@@ -300,20 +301,18 @@ def train_one_epoch_arcface(model, metric_fc, loader, optimizer, device, criteri
         optimizer.zero_grad()
         
         # 1. エンコーダで特徴抽出
-        # ※ extract_embeddingが detach() を含んでいる場合は、直接 model(data) を呼ぶ必要があります。
-        # ここでは model(data) が埋め込みベクトルを返すと仮定して直接呼びます。
-        # embeddings = extract_embedding(model, data) 
-        embeddings = model(data) 
-        
-        # フラット化が必要な場合 (ResNetなどで (B, C, 1, 1) となる場合)
-        if embeddings.dim() > 2:
-            embeddings = embeddings.view(embeddings.size(0), -1)
+        # extract_embedding はグローバル平均プーリング + L2 正規化を含む
+        # ArcFace の in_features と整合する次元で統一する
+        embeddings = extract_embedding(model, data)
 
         # 2. ArcFace Layer (Metric FC) で Logits 計算
         logits = metric_fc(embeddings, labels)
         
         # 3. Cross Entropy Loss
         loss = criterion(logits, labels)
+        preds = logits.argmax(dim=1)
+        total_correct += (preds == labels).sum().item()
+        total_samples += labels.numel()
         
         loss.backward()
         optimizer.step()
@@ -321,13 +320,18 @@ def train_one_epoch_arcface(model, metric_fc, loader, optimizer, device, criteri
         total_loss += loss.item()
         usable_batches += 1
 
-    return total_loss / usable_batches
+    avg_loss = total_loss / usable_batches
+    accuracy = (total_correct / total_samples) if total_samples > 0 else float("nan")
+    return avg_loss, accuracy
 
-def evaluate_arcface(model, metric_fc, loader, device, criterion) -> float:
+def evaluate_arcface(model, metric_fc, loader, device, criterion, num_classes: int) -> tuple[float, float, np.ndarray]:
     model.eval()
     metric_fc.eval()
     total_loss = 0.0
     usable_batches = 0
+    total_correct = 0
+    total_samples = 0
+    conf_mat = np.zeros((num_classes, num_classes), dtype=np.int64)
     
     with torch.no_grad():
         for batch in loader:
@@ -336,18 +340,24 @@ def evaluate_arcface(model, metric_fc, loader, device, criterion) -> float:
             labels = (vtype.to(device) * 2) + direc.to(device)
             labels = labels.long()
 
-            embeddings = model(data)
-            if embeddings.dim() > 2:
-                embeddings = embeddings.view(embeddings.size(0), -1)
+            embeddings = extract_embedding(model, data)
 
             logits = metric_fc(embeddings, labels)
             loss = criterion(logits, labels)
+            preds = logits.argmax(dim=1)
+            total_correct += (preds == labels).sum().item()
+            total_samples += labels.numel()
+            for t, p in zip(labels.view(-1).cpu().numpy(), preds.view(-1).cpu().numpy()):
+                conf_mat[int(t), int(p)] += 1
             
             total_loss += loss.item()
             usable_batches += 1
 
-    if usable_batches == 0: return float("nan")
-    return total_loss / usable_batches
+    if usable_batches == 0:
+        return float("nan"), float("nan"), conf_mat
+    avg_loss = total_loss / usable_batches
+    accuracy = (total_correct / total_samples) if total_samples > 0 else float("nan")
+    return avg_loss, accuracy, conf_mat
 
 
 def main() -> None:
@@ -447,16 +457,16 @@ def main() -> None:
     # 重要: ArcFaceのパラメータ(metric_fc.parameters)も最適化対象に含める
     # 論文ではSGD (momentum=0.9, weight_decay=5e-4) が推奨されていますが、
     # 収束が遅い場合は AdamW などでも可。ここでは論文準拠の設定例を示します。
-    optimizer = optim.SGD([
-        {'params': model.parameters()},
-        {'params': metric_fc.parameters()}
-    ], lr=args.lr, momentum=0.9, weight_decay=5e-4)
+    # optimizer = optim.SGD([
+    #     {'params': model.parameters()},
+    #     {'params': metric_fc.parameters()}
+    # ], lr=args.lr, momentum=0.9, weight_decay=5e-4)
     
     # もしAdamを使いたい場合:
-    # optimizer = optim.Adam([
-    #     {'params': model.parameters()}, 
-    #     {'params': metric_fc.parameters()}
-    # ], lr=args.lr)
+    optimizer = optim.Adam([
+        {'params': model.parameters()}, 
+        {'params': metric_fc.parameters()}
+    ], lr=args.lr)
 
     if not args.no_train:
         best_val_loss = float("inf")
@@ -464,16 +474,25 @@ def main() -> None:
 
         for epoch in range(args.epochs):
             epoch_label = f"Train Epoch {epoch + 1}/{args.epochs}"
-            train_loss = train_one_epoch_arcface(model, metric_fc, train_loader, optimizer, device, criterion, epoch_label)
-            val_loss = evaluate_arcface(model, metric_fc, val_loader, device, criterion)
+            train_loss, train_acc = train_one_epoch_arcface(
+                model, metric_fc, train_loader, optimizer, device, criterion, epoch_label
+            )
+            val_loss, val_acc, conf_mat = evaluate_arcface(
+                model, metric_fc, val_loader, device, criterion, NUM_CLASSES
+            )
 
             logger.info(
-                "Epoch [%d/%d] train_loss=%.4f val_loss=%s",
+                "Epoch [%d/%d] train_loss=%.4f train_acc=%.2f%% val_loss=%s val_acc=%s",
                 epoch + 1,
                 args.epochs,
                 train_loss,
+                train_acc * 100 if math.isfinite(train_acc) else float("nan"),
                 f"{val_loss:.4f}" if math.isfinite(val_loss) else "nan",
+                f"{val_acc * 100:.2f}%" if math.isfinite(val_acc) else "nan",
             )
+
+            if np.any(conf_mat):
+                logger.info("Validation confusion matrix:\n%s", conf_mat)
 
             if math.isfinite(val_loss) and val_loss < best_val_loss:
                 best_val_loss = val_loss
