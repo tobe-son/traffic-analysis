@@ -13,6 +13,7 @@ Notes
 from __future__ import annotations
 
 import argparse
+import gc
 import math
 import sys
 from pathlib import Path
@@ -22,6 +23,9 @@ import optuna
 from optuna import distributions as optuna_distributions
 import torch
 import torch.optim as optim
+from torch.cuda.amp import GradScaler
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 # Allow imports from the src directory
 SRC_ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +40,7 @@ from metric.LabelClustering import (
     DEFAULT_HOP_LENGTH,
     DEFAULT_REPRESENTATION,
     MODEL_REGISTRY,
+    circle_loss_for_batch,
     evaluate,
     log_hyperparameters,
     resolve_hop_length,
@@ -43,6 +48,63 @@ from metric.LabelClustering import (
     set_global_seed,
     train_one_epoch,
 )
+
+
+def _train_one_epoch_amp(
+    model: torch.nn.Module,
+    loader: DataLoader,
+    optimizer: optim.Optimizer,
+    device: torch.device,
+    criterion: torch.nn.Module,
+    epoch_label: str,
+    scaler: GradScaler,
+) -> float:
+    model.train()
+    total_loss = 0.0
+    usable_batches = 0
+
+    for batch in tqdm(loader, desc=epoch_label):
+        optimizer.zero_grad(set_to_none=True)
+        with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=(device.type == "cuda")):
+            loss = circle_loss_for_batch(model, batch, device, criterion)
+            if loss is None:
+                continue
+
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        total_loss += float(loss.item())
+        usable_batches += 1
+
+    if usable_batches == 0:
+        raise RuntimeError("No valid batches produced a CircleLoss signal. Increase batch size or ensure label diversity.")
+
+    return total_loss / usable_batches
+
+
+def _evaluate_amp(
+    model: torch.nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    criterion: torch.nn.Module,
+) -> float:
+    model.eval()
+    total_loss = 0.0
+    usable_batches = 0
+    with torch.no_grad():
+        for batch in loader:
+            with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=(device.type == "cuda")):
+                loss = circle_loss_for_batch(model, batch, device, criterion)
+            if loss is None:
+                continue
+            total_loss += float(loss.item())
+            usable_batches += 1
+
+    if usable_batches == 0:
+        return float("nan")
+
+    return total_loss / usable_batches
 
 
 def parse_hpo_args() -> argparse.Namespace:
@@ -90,6 +152,28 @@ def parse_hpo_args() -> argparse.Namespace:
         "--save-checkpoints",
         action="store_true",
         help="Save best/last encoder weights per trial (can consume disk).",
+    )
+
+    parser.add_argument(
+        "--amp",
+        action="store_true",
+        help="Use CUDA AMP (fp16 autocast) to reduce GPU memory usage.",
+    )
+
+    parser.add_argument(
+        "--oom-retry-max",
+        type=int,
+        default=3,
+        help=(
+            "On CUDA OOM, retry the same trial by reducing batch_size. "
+            "Set 0 to disable retries (trial will be marked as failed)."
+        ),
+    )
+    parser.add_argument(
+        "--oom-min-batch-size",
+        type=int,
+        default=4,
+        help="Minimum batch_size allowed when retrying after CUDA OOM.",
     )
 
     parser.add_argument(
@@ -250,6 +334,13 @@ def _resolve_trial_hop_length(
 
 
 def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
+    # Make sure we start the trial with as much free GPU memory as possible.
+    if torch.cuda.is_available():
+        try:
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
     model_key = cli_args.model
     description, model_cls = MODEL_REGISTRY[model_key]
 
@@ -263,158 +354,248 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
         representation=representation,
     )
 
-    # Fixed seed for reproducibility across trials
-    set_global_seed(cli_args.seed)
+    model = None
+    optimizer = None
+    criterion = None
+    train_loader = None
+    val_loader = None
+    logger = None
 
-    if resolved:
-        if "batch_size" in resolved:
-            batch_size = int(resolved["batch_size"])
+    try:
+        # Fixed seed for reproducibility across trials
+        set_global_seed(cli_args.seed)
+
+        if resolved:
+            if "batch_size" in resolved:
+                batch_size = int(resolved["batch_size"])
+            else:
+                batch_size = int(trial.suggest_categorical("batch_size", [16, 32, 48, 64]))
+
+            if "lr" in resolved:
+                lr = float(resolved["lr"])
+            else:
+                lr = float(trial.suggest_float("lr", 1e-4, 5e-3, log=True))
+
+            if "epochs" in resolved:
+                epochs = int(resolved["epochs"])
+            else:
+                epochs = int(trial.suggest_int("epochs", cli_args.min_epochs, cli_args.max_epochs))
         else:
             batch_size = int(trial.suggest_categorical("batch_size", [16, 32, 48, 64]))
-
-        if "lr" in resolved:
-            lr = float(resolved["lr"])
-        else:
             lr = float(trial.suggest_float("lr", 1e-4, 5e-3, log=True))
-
-        if "epochs" in resolved:
-            epochs = int(resolved["epochs"])
-        else:
             epochs = int(trial.suggest_int("epochs", cli_args.min_epochs, cli_args.max_epochs))
-    else:
-        batch_size = int(trial.suggest_categorical("batch_size", [16, 32, 48, 64]))
-        lr = float(trial.suggest_float("lr", 1e-4, 5e-3, log=True))
-        epochs = int(trial.suggest_int("epochs", cli_args.min_epochs, cli_args.max_epochs))
 
-    if cli_args.margin is not None:
-        margin = float(cli_args.margin)
-    elif resolved and "margin" in resolved:
-        margin = float(resolved["margin"])
-    else:
-        margin = float(trial.suggest_float("margin", 0.1, 0.4))
-
-    if cli_args.gamma is not None:
-        gamma = float(cli_args.gamma)
-    elif resolved and "gamma" in resolved:
-        gamma = float(resolved["gamma"])
-    else:
-        gamma = float(trial.suggest_float("gamma", 16.0, 128.0, log=True))
-
-    mel = cli_args.mel
-
-    if representation == "spectrogram":
-        if resolved and "n_fft" in resolved:
-            n_fft = int(resolved["n_fft"])
+        if cli_args.margin is not None:
+            margin = float(cli_args.margin)
+        elif resolved and "margin" in resolved:
+            margin = float(resolved["margin"])
         else:
-            n_fft = int(trial.suggest_categorical("n_fft", [512, 1024, 2048]))
+            margin = float(trial.suggest_float("margin", 0.1, 0.4))
 
-        if cli_args.hop_length is not None:
-            hop_length = int(cli_args.hop_length)
-        elif resolved and "hop_length" in resolved:
-            hop_length = int(resolved["hop_length"])
+        if cli_args.gamma is not None:
+            gamma = float(cli_args.gamma)
+        elif resolved and "gamma" in resolved:
+            gamma = float(resolved["gamma"])
         else:
-            hop_length = _resolve_trial_hop_length(
-                trial=trial,
-                model_key=model_key,
+            gamma = float(trial.suggest_float("gamma", 16.0, 128.0, log=True))
+
+        mel = cli_args.mel
+
+        if representation == "spectrogram":
+            if resolved and "n_fft" in resolved:
+                n_fft = int(resolved["n_fft"])
+            else:
+                n_fft = int(trial.suggest_categorical("n_fft", [512, 1024, 2048]))
+
+            if cli_args.hop_length is not None:
+                hop_length = int(cli_args.hop_length)
+            elif resolved and "hop_length" in resolved:
+                hop_length = int(resolved["hop_length"])
+            else:
+                hop_length = _resolve_trial_hop_length(
+                    trial=trial,
+                    model_key=model_key,
+                    representation=representation,
+                    cli_hop_length=cli_args.hop_length,
+                )
+
+            if mel is None:
+                if resolved and "mel" in resolved:
+                    mel = str(resolved["mel"])
+                else:
+                    mel = str(trial.suggest_categorical("mel", ["OFF", "ON"]))
+        else:
+            # Waveform models ignore these; keep consistent types
+            n_fft = int(cli_args.n_fft)
+            hop_length = resolve_hop_length(model_key, cli_args.hop_length)
+            mel = "OFF"
+
+        # Create an output dir per trial (fast logging, optional checkpoints)
+        logger = output_settings()
+
+        base_hyperparameters = {
+            "MODEL": model_key,
+            "MODEL_DESCRIPTION": description,
+            "DATA_SELECTION": cli_args.data_selection,
+            "DATA_CSV_PATH": cli_args.data_csv,
+            "MAIN_DATA_DIR": cli_args.main_data_dir,
+            "MEL": mel,
+            "SAMPLING_RATE": cli_args.sampling_rate,
+            "N_FFT": n_fft,
+            "HOP_LENGTH": hop_length,
+            "TEST_DATASET_PERCENTAGE": cli_args.test_split,
+            "EPOCHS": epochs,
+            "LEARNING_RATE": lr,
+            "MARGIN": margin,
+            "GAMMA": gamma,
+            "REPRESENTATION": representation,
+            "SEED": cli_args.seed,
+            "HPO_CONFIG": cli_args.hpo_config or "(none)",
+        }
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logger.info("Using device: %s", device)
+
+        # If we hit CUDA OOM, retry within the same trial by reducing batch_size.
+        # This avoids wasting the entire study due to a single too-large configuration.
+        effective_batch_size = int(batch_size)
+        max_attempts = 1 + max(0, int(cli_args.oom_retry_max))
+        oom_adjustments: list[dict[str, int]] = []
+
+        for attempt_idx in range(max_attempts):
+            # Log hyperparameters with the effective batch size for this attempt.
+            hyperparameters = dict(base_hyperparameters)
+            hyperparameters["BATCH_SIZE"] = effective_batch_size
+            log_hyperparameters(logger, hyperparameters)
+
+            # (Re)build dataloaders and model per attempt.
+            train_loader, val_loader, feature_min, feature_max = prepare_dataloader(
+                logger=logger,
+                hop_length=hop_length,
+                batch_size=effective_batch_size,
+                data_csv_path=cli_args.data_csv,
+                main_data_dir=cli_args.main_data_dir,
+                n_fft=n_fft,
+                data_num=cli_args.data_selection,
+                mel=mel,
+                sampling_rate=cli_args.sampling_rate,
+                test_split=cli_args.test_split,
+                seed=cli_args.seed,
                 representation=representation,
-                cli_hop_length=cli_args.hop_length,
+            )
+            logger.info(
+                "データの準備が完了しました。feature_min=%.6f feature_max=%.6f",
+                feature_min,
+                feature_max,
             )
 
-        if mel is None:
-            if resolved and "mel" in resolved:
-                mel = str(resolved["mel"])
-            else:
-                mel = str(trial.suggest_categorical("mel", ["OFF", "ON"]))
-    else:
-        # Waveform models ignore these; keep consistent types
-        n_fft = int(cli_args.n_fft)
-        hop_length = resolve_hop_length(model_key, cli_args.hop_length)
-        mel = "OFF"
+            model = model_cls().to(device)
+            criterion = CircleLoss(m=margin, gamma=gamma).to(device)
+            optimizer = optim.Adam(model.parameters(), lr=lr)
+            scaler = GradScaler(enabled=(cli_args.amp and device.type == "cuda"))
 
-    # Create an output dir per trial (fast logging, optional checkpoints)
-    logger = output_settings()
+            best_val_loss = float("inf")
+            best_epoch = -1
 
-    hyperparameters = {
-        "MODEL": model_key,
-        "MODEL_DESCRIPTION": description,
-        "DATA_SELECTION": cli_args.data_selection,
-        "DATA_CSV_PATH": cli_args.data_csv,
-        "MAIN_DATA_DIR": cli_args.main_data_dir,
-        "MEL": mel,
-        "SAMPLING_RATE": cli_args.sampling_rate,
-        "N_FFT": n_fft,
-        "HOP_LENGTH": hop_length,
-        "TEST_DATASET_PERCENTAGE": cli_args.test_split,
-        "BATCH_SIZE": batch_size,
-        "EPOCHS": epochs,
-        "LEARNING_RATE": lr,
-        "MARGIN": margin,
-        "GAMMA": gamma,
-        "REPRESENTATION": representation,
-        "SEED": cli_args.seed,
-        "HPO_CONFIG": cli_args.hpo_config or "(none)",
-    }
-    log_hyperparameters(logger, hyperparameters)
+            try:
+                for epoch in range(epochs):
+                    epoch_label = f"Train Epoch {epoch + 1}/{epochs}"
+                    if cli_args.amp and device.type == "cuda":
+                        _train_loss = _train_one_epoch_amp(model, train_loader, optimizer, device, criterion, epoch_label, scaler)
+                    else:
+                        _train_loss = train_one_epoch(model, train_loader, optimizer, device, criterion, epoch_label)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info("Using device: %s", device)
+                    if cli_args.amp and device.type == "cuda":
+                        val_loss = _evaluate_amp(model, val_loader, device, criterion)
+                    else:
+                        val_loss = evaluate(model, val_loader, device, criterion)
 
-    train_loader, val_loader, feature_min, feature_max = prepare_dataloader(
-        logger=logger,
-        hop_length=hop_length,
-        batch_size=batch_size,
-        data_csv_path=cli_args.data_csv,
-        main_data_dir=cli_args.main_data_dir,
-        n_fft=n_fft,
-        data_num=cli_args.data_selection,
-        mel=mel,
-        sampling_rate=cli_args.sampling_rate,
-        test_split=cli_args.test_split,
-        seed=cli_args.seed,
-        representation=representation,
-    )
-    logger.info(
-        "データの準備が完了しました。feature_min=%.6f feature_max=%.6f",
-        feature_min,
-        feature_max,
-    )
+                    if math.isfinite(val_loss):
+                        trial.report(val_loss, epoch)
+                        if trial.should_prune():
+                            raise optuna.TrialPruned()
 
-    model = model_cls().to(device)
-    criterion = CircleLoss(m=margin, gamma=gamma).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+                        if val_loss < best_val_loss:
+                            best_val_loss = val_loss
+                            best_epoch = epoch + 1
+                            if cli_args.save_checkpoints:
+                                torch.save(
+                                    model.state_dict(),
+                                    Path(logger.output_dir) / f"best_encoder_{model_key}.pth",
+                                )
 
-    best_val_loss = float("inf")
-    best_epoch = -1
-
-    for epoch in range(epochs):
-        epoch_label = f"Train Epoch {epoch + 1}/{epochs}"
-        try:
-            _train_loss = train_one_epoch(model, train_loader, optimizer, device, criterion, epoch_label)
-        except RuntimeError as exc:
-            # No valid batches -> this configuration is not usable
-            logger.error("Trial failed during training: %s", exc)
-            return float("inf")
-
-        val_loss = evaluate(model, val_loader, device, criterion)
-
-        if math.isfinite(val_loss):
-            trial.report(val_loss, epoch)
-            if trial.should_prune():
-                raise optuna.TrialPruned()
-
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                best_epoch = epoch + 1
                 if cli_args.save_checkpoints:
-                    torch.save(model.state_dict(), Path(logger.output_dir) / f"best_encoder_{model_key}.pth")
+                    torch.save(model.state_dict(), Path(logger.output_dir) / f"last_encoder_{model_key}.pth")
 
-    if cli_args.save_checkpoints:
-        torch.save(model.state_dict(), Path(logger.output_dir) / f"last_encoder_{model_key}.pth")
+                trial.set_user_attr("output_dir", logger.output_dir)
+                trial.set_user_attr("best_epoch", best_epoch)
+                trial.set_user_attr("effective_batch_size", effective_batch_size)
+                if oom_adjustments:
+                    trial.set_user_attr("oom_adjustments", oom_adjustments)
 
-    trial.set_user_attr("output_dir", logger.output_dir)
-    trial.set_user_attr("best_epoch", best_epoch)
+                return float(best_val_loss)
 
-    return float(best_val_loss)
+            except RuntimeError as exc:
+                msg = str(exc).lower()
+                is_cuda_oom = ("out of memory" in msg) or ("cuda" in msg and "memory" in msg)
+                if not is_cuda_oom:
+                    logger.error("Trial failed during training: %s", exc)
+                    if "no valid batches produced a circleloss signal" in msg:
+                        trial.set_user_attr("failed_reason", "no_valid_batches")
+                    else:
+                        trial.set_user_attr("failed_reason", "runtime_error")
+                    raise
+
+                logger.error("CUDA OOM (attempt %d/%d): %s", attempt_idx + 1, max_attempts, exc)
+                if effective_batch_size <= int(cli_args.oom_min_batch_size):
+                    trial.set_user_attr("failed_reason", "cuda_oom")
+                    raise
+
+                # Cleanup before retrying.
+                try:
+                    del model, optimizer, criterion, train_loader, val_loader, scaler
+                except Exception:
+                    pass
+                gc.collect()
+                if torch.cuda.is_available():
+                    try:
+                        torch.cuda.empty_cache()
+                    except Exception:
+                        pass
+
+                prev_bs = effective_batch_size
+                effective_batch_size = max(int(cli_args.oom_min_batch_size), prev_bs // 2)
+                oom_adjustments.append({"from": prev_bs, "to": effective_batch_size})
+                logger.info("Retrying trial with smaller batch_size: %d -> %d", prev_bs, effective_batch_size)
+
+                continue
+
+    except RuntimeError as exc:
+        msg = str(exc).lower()
+        is_cuda_oom = ("out of memory" in msg) or ("cuda" in msg and "memory" in msg)
+        if is_cuda_oom:
+            try:
+                trial.set_user_attr("failed_reason", "cuda_oom")
+            except Exception:
+                pass
+            if torch.cuda.is_available():
+                try:
+                    torch.cuda.empty_cache()
+                except Exception:
+                    pass
+            raise
+        raise
+    finally:
+        try:
+            del model, optimizer, criterion, train_loader, val_loader, logger
+        except Exception:
+            pass
+        gc.collect()
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
 
 
 def main() -> None:
@@ -456,17 +637,21 @@ def main() -> None:
         n_trials=cli_args.n_trials,
         timeout=cli_args.timeout,
         n_jobs=cli_args.n_jobs,
+        catch=(RuntimeError,),
         show_progress_bar=False,
     )
 
-    best = study.best_trial
-    print("Best validation loss:", float(best.value))
-    print("Best params:")
-    for k, v in best.params.items():
-        print(f"  {k}: {v}")
-
-    output_dir = best.user_attrs.get("output_dir")
-    out_path = Path(output_dir) if output_dir else default_fallback_output_dir(study_name=study.study_name)
+    completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+    if completed:
+        best = study.best_trial
+        print("Best validation loss:", float(best.value))
+        print("Best params:")
+        for k, v in best.params.items():
+            print(f"  {k}: {v}")
+        out_path = default_fallback_output_dir(study_name=study.study_name)
+    else:
+        print("No successful (COMPLETE) trials. All trials failed/pruned.")
+        out_path = default_fallback_output_dir(study_name=study.study_name)
 
     meta = {
         "model": cli_args.model,

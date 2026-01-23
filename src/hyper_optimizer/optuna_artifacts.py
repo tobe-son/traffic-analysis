@@ -4,12 +4,14 @@ We already store trials in Optuna storage (e.g., sqlite). These helpers export
 "best params" and per-trial summaries to files so that experiments can be
 reviewed without opening the DB.
 
-Outputs are written using only the Python standard library.
+In addition, if Plotly is available, we export common Optuna visualization
+charts as self-contained HTML.
 """
 
 from __future__ import annotations
 
 import csv
+import importlib.util
 import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -68,6 +70,82 @@ def _collect_param_names(trials: Iterable[optuna.trial.FrozenTrial]) -> list[str
     return sorted(names)
 
 
+def _export_optuna_plots(*, study: optuna.Study, output_dir: Path) -> None:
+    """Export Optuna visualization charts as HTML.
+
+    This is best-effort and never raises; failures are written to a log file so
+    that study exports still succeed on headless / minimal environments.
+    """
+
+    log_path = output_dir / "optuna_plots.log"
+
+    def _log(msg: str) -> None:
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(msg.rstrip() + "\n")
+
+    # HTML (Plotly)
+    if importlib.util.find_spec("plotly") is None:
+        _log("plotly is not available; skipping HTML plots")
+    else:
+            try:
+                from optuna.visualization import plot_optimization_history, plot_parallel_coordinate, plot_param_importances
+
+                plotly_plots: list[tuple[str, Any, str]] = [
+                    ("optuna_optimization_history", plot_optimization_history, "Optimization History"),
+                    ("optuna_parallel_coordinate", plot_parallel_coordinate, "Parallel Coordinate Plot"),
+                    ("optuna_hyperparameter_importance", plot_param_importances, "Hyperparameter Importance"),
+                ]
+
+                for stem, plot_fn, title in plotly_plots:
+                    try:
+                        fig = plot_fn(study)
+                        fig.write_html(str(output_dir / f"{stem}.html"), include_plotlyjs=True, full_html=True)
+                    except Exception as exc:
+                        _log(f"failed to export {title} HTML ({type(exc).__name__}: {exc})")
+            except Exception as exc:
+                _log(f"optuna.visualization (plotly) import failed; skipping HTML plots ({type(exc).__name__}: {exc})")
+
+    # PNG (Matplotlib backend, preferred)
+    if importlib.util.find_spec("optuna.visualization.matplotlib") is not None:
+        try:
+            from optuna.visualization.matplotlib import (
+                plot_optimization_history as mpl_plot_optimization_history,
+                plot_parallel_coordinate as mpl_plot_parallel_coordinate,
+                plot_param_importances as mpl_plot_param_importances,
+            )
+
+            import matplotlib
+
+            try:
+                matplotlib.use("Agg", force=True)
+            except Exception:
+                pass
+
+            import matplotlib.pyplot as plt
+
+            mpl_plots: list[tuple[str, Any, str]] = [
+                ("optuna_optimization_history", mpl_plot_optimization_history, "Optimization History"),
+                ("optuna_parallel_coordinate", mpl_plot_parallel_coordinate, "Parallel Coordinate Plot"),
+                ("optuna_hyperparameter_importance", mpl_plot_param_importances, "Hyperparameter Importance"),
+            ]
+
+            for stem, plot_fn, title in mpl_plots:
+                try:
+                    ax_or_fig = plot_fn(study)
+                    fig = getattr(ax_or_fig, "figure", ax_or_fig)
+                    fig.savefig(str(output_dir / f"{stem}.png"), dpi=200, bbox_inches="tight")
+                    try:
+                        plt.close(fig)
+                    except Exception:
+                        pass
+                except Exception as exc:
+                    _log(f"failed to export {title} PNG ({type(exc).__name__}: {exc})")
+        except Exception as exc:
+            _log(f"optuna.visualization.matplotlib import failed; skipping PNG plots ({type(exc).__name__}: {exc})")
+    else:
+        _log("optuna.visualization.matplotlib is not available; skipping PNG plots")
+
+
 def export_study(
     *,
     study: optuna.Study,
@@ -91,8 +169,17 @@ def export_study(
     trials = list(study.trials)
     n_complete = sum(1 for t in trials if t.state == optuna.trial.TrialState.COMPLETE)
 
-    best_trial = study.best_trial
-    best_value = float(best_trial.value) if best_trial.value is not None else float("nan")
+    best_trial = None
+    best_value = float("nan")
+    best_trial_number = -1
+    best_params: Mapping[str, Any] = {}
+    best_user_attrs: Mapping[str, Any] = {}
+    if n_complete > 0:
+        best_trial = study.best_trial
+        best_value = float(best_trial.value) if best_trial.value is not None else float("nan")
+        best_trial_number = int(best_trial.number)
+        best_params = _safe_json(best_trial.params)
+        best_user_attrs = _safe_json(best_trial.user_attrs)
 
     export = StudyExport(
         exported_at_utc=_utc_now_iso(),
@@ -101,10 +188,10 @@ def export_study(
         storage=storage,
         n_trials_total=len(trials),
         n_trials_complete=n_complete,
-        best_trial_number=int(best_trial.number),
+        best_trial_number=best_trial_number,
         best_value=best_value,
-        best_params=_safe_json(best_trial.params),
-        best_user_attrs=_safe_json(best_trial.user_attrs),
+        best_params=best_params,
+        best_user_attrs=best_user_attrs,
         meta=_safe_json(dict(meta or {})),
     )
 
@@ -114,7 +201,7 @@ def export_study(
 
     best_params_path = output_dir / "optuna_best_params.json"
     with best_params_path.open("w", encoding="utf-8") as f:
-        json.dump(_safe_json(best_trial.params), f, ensure_ascii=False, indent=2, sort_keys=True)
+        json.dump(_safe_json(best_params), f, ensure_ascii=False, indent=2, sort_keys=True)
 
     # Trials CSV
     param_names = _collect_param_names(trials)
@@ -151,6 +238,8 @@ def export_study(
                 row[f"param_{n}"] = t.params.get(n)
 
             writer.writerow(row)
+
+    _export_optuna_plots(study=study, output_dir=output_dir)
 
     return best_json_path
 

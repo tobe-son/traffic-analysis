@@ -6,6 +6,7 @@ runs Optuna to minimise validation loss. Each trial saves its own outputs under
 """
 
 import argparse
+import gc
 import sys
 from pathlib import Path
 
@@ -61,6 +62,15 @@ def build_pruner(name: str) -> optuna.pruners.BasePruner:
 
 
 def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
+    # Best-effort: start the trial with more free GPU memory.
+    import torch
+
+    if torch.cuda.is_available():
+        try:
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
     # Start from CNN_any defaults and override per trial
     args = CNN_any.parse_args([])
     args.model = cli_args.model
@@ -122,13 +132,36 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
     args.save_latent_space = False
     args.skip_latent = True
 
-    best_loss, output_dir = CNN_any.train_autoencoder(
-        args,
-        enable_latent=False,
-        trial=trial,
-    )
-    trial.set_user_attr("output_dir", output_dir)
-    return best_loss
+    try:
+        best_loss, output_dir = CNN_any.train_autoencoder(
+            args,
+            enable_latent=False,
+            trial=trial,
+        )
+        trial.set_user_attr("output_dir", output_dir)
+        return best_loss
+    except RuntimeError as exc:
+        msg = str(exc).lower()
+        is_cuda_oom = ("out of memory" in msg) or ("cuda" in msg and "memory" in msg)
+        if is_cuda_oom:
+            try:
+                trial.set_user_attr("failed_reason", "cuda_oom")
+            except Exception:
+                pass
+            if torch.cuda.is_available():
+                try:
+                    torch.cuda.empty_cache()
+                except Exception:
+                    pass
+            return float("inf")
+        raise
+    finally:
+        gc.collect()
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
 
 
 def main() -> None:
@@ -154,39 +187,43 @@ def main() -> None:
         show_progress_bar=False,
     )
 
-    best = study.best_trial
-    print("Best validation loss:", best.value)
-    print("Best params:")
-    for k, v in best.params.items():
-        print(f"  {k}: {v}")
-        output_dir = best.user_attrs.get("output_dir")
-        out_path = Path(output_dir) if output_dir else default_fallback_output_dir(study_name=cli_args.study_name)
+    completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+    if completed:
+        best = study.best_trial
+        print("Best validation loss:", float(best.value))
+        print("Best params:")
+        for k, v in best.params.items():
+            print(f"  {k}: {v}")
+    else:
+        print("No successful (COMPLETE) trials. All trials failed/pruned.")
 
-        meta = {
-            "model": cli_args.model,
-            "representation": cli_args.representation,
-            "data_selection": cli_args.data_selection,
-            "data_csv": cli_args.data_csv,
-            "main_data_dir": cli_args.main_data_dir,
-            "mel": cli_args.mel,
-            "min_epochs": cli_args.min_epochs,
-            "max_epochs": cli_args.max_epochs,
-            "seed": cli_args.seed,
-            "hpo_config": cli_args.hpo_config,
-            "pruner": cli_args.pruner,
-            "n_jobs": cli_args.n_jobs,
-            "argv": sys.argv,
-        }
+    out_path = default_fallback_output_dir(study_name=study.study_name)
 
-        best_json_path = export_study(
-            study=study,
-            output_dir=out_path,
-            storage=cli_args.storage,
-            meta=meta,
-        )
+    meta = {
+        "model": cli_args.model,
+        "representation": cli_args.representation,
+        "data_selection": cli_args.data_selection,
+        "data_csv": cli_args.data_csv,
+        "main_data_dir": cli_args.main_data_dir,
+        "mel": cli_args.mel,
+        "min_epochs": cli_args.min_epochs,
+        "max_epochs": cli_args.max_epochs,
+        "seed": cli_args.seed,
+        "hpo_config": cli_args.hpo_config,
+        "pruner": cli_args.pruner,
+        "n_jobs": cli_args.n_jobs,
+        "argv": sys.argv,
+    }
 
-        print("Artifacts in:", str(out_path))
-        print("Optuna summary:", str(best_json_path))
+    best_json_path = export_study(
+        study=study,
+        output_dir=out_path,
+        storage=cli_args.storage,
+        meta=meta,
+    )
+
+    print("Artifacts in:", str(out_path))
+    print("Optuna summary:", str(best_json_path))
 
 
 if __name__ == "__main__":

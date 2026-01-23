@@ -53,10 +53,14 @@ dependencies:
   # パラメータをチューニングするためのOptuna
   - optuna>=3.5.0
 
+  # Optuna visualization (HTML export)
+  - plotly>=5.18.0
+
   # --- PIP Dependencies ---
   # Condaで見つからない、または特定ライブラリはここに入れます
   - pip:
       - soundfile>=0.12.1    # ここに移動しました
       - pyroadacoustics>=1.1.0
       - coolname>=2.2.0
+      - kaleido>=0.2.1     # Plotly static image export (PNG)
       - -e . #パスが通るようにするために必要

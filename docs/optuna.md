@@ -130,10 +130,17 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
 
 - 各 trial は `outputs/<日付>/<時刻>/` に成果物を出力します
 - Optuna の best trial では、コンソールに `Best params` と `Artifacts in: ...` が表示されます
-- Optuna 実行後、best trial の `Artifacts in: ...` に以下も自動保存されます:
+- Optuna 実行後、study サマリは `outputs/optuna_studies/<study_name>/` に自動保存されます:
 	- `optuna_best.json`: best trial の値/params + 実行メタ情報（seed, hpo-config, argv など）
 	- `optuna_best_params.json`: best params だけ（再利用しやすい）
 	- `optuna_trials.csv`: 全 trial の一覧（state/value/params など）
+	- `optuna_optimization_history.html`: Optimization History（最適化履歴）
+	- `optuna_parallel_coordinate.html`: Parallel Coordinate Plot（平行座標プロット）
+	- `optuna_hyperparameter_importance.html`: Hyperparameter Importance（重要度）
+	- `optuna_optimization_history.png`
+	- `optuna_parallel_coordinate.png`
+	- `optuna_hyperparameter_importance.png`
+	- `optuna_plots.log`: 図が出せない場合の理由（plotly未導入、trial不足など）
 
 ---
 
@@ -193,9 +200,21 @@ JSON の書き方は AutoEncoder と同じです（`fixed` / `categorical` / `fl
 
 ## 4. 出力（最適化したハイパパラメータのログ）
 
-Optuna 実行後、best trial の `Artifacts in: ...` に以下が保存されます:
+Optuna 実行後、study サマリは `outputs/optuna_studies/<study_name>/` に保存されます:
 
 - `optuna_best.json`
 - `optuna_best_params.json`
 - `optuna_trials.csv`
+
+plotly が利用できる場合は以下も出ます:
+- `optuna_optimization_history.html`
+- `optuna_parallel_coordinate.html`
+- `optuna_hyperparameter_importance.html`
+
+さらに `kaleido` が利用できる場合はPNGも出ます:
+- `optuna_optimization_history.png`
+- `optuna_parallel_coordinate.png`
+- `optuna_hyperparameter_importance.png`
+
+図が生成できない場合は `optuna_plots.log` に理由が残ります。
 
