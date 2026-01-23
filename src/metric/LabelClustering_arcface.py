@@ -29,7 +29,6 @@ from learn_tool.settings import output_settings, prepare_dataloader
 from learn_tool.visualize import LatentSpaceVisualizer
 from encoder.base_model import Encoder_Original, Encoder_Small, Encoder_Wave1D
 from encoder.new_model import Encoder_ResNet, Encoder_ResNet18, Encoder_ResNet50, Encoder_VGG11
-from loss.circle_loss import CircleLoss, convert_label_to_similarity
 from metric.utils import compute_stats_by_label, extract_embedding, set_global_seed
 
 
@@ -68,7 +67,7 @@ DEFAULT_HOP_LENGTH = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Circle Loss を用いて任意のエンコーダでメトリックラーニングを行うスクリプト"
+        description="ArcFace Loss を用いて任意のエンコーダでメトリックラーニングを行うスクリプト"
     )
     parser.add_argument("--model", choices=MODEL_REGISTRY.keys(), default="vgg11", help="使用するエンコーダ")
     parser.add_argument("--data-selection", default="loc1-6", help="使用するデータ識別子 (例: loc1, loc1-6)")
@@ -89,10 +88,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-train",
         action="store_true",
-        help="Skip CircleLoss training and only extract embeddings + visualize.",
+        help="Skip ArcFace training and only extract embeddings + visualize.",
     )
-    parser.add_argument("--margin", type=float, default=0.25, help="CircleLoss のマージン値")
-    parser.add_argument("--gamma", type=float, default=80.0, help="CircleLoss のスケーリング係数")
     parser.add_argument("--representation", choices=["waveform", "spectrogram"], default=None, help="入力表現。未指定時はモデル推奨を使用")
     parser.add_argument("--visualization", choices=["t-SNE", "PCA", "LDA", "UMAP", "MDS"], default="t-SNE")
     parser.add_argument("--dimension", type=int, default=2, help="潜在空間の可視化次元")
@@ -125,55 +122,6 @@ def resolve_hop_length(model_key: str, override: int | None) -> int:
     if override is not None:
         return override
     return DEFAULT_HOP_LENGTH.get(model_key, 512)
-
-
-def circle_loss_for_batch(model, batch, device, criterion):
-    data, _speed, vtype, direc, _loc = batch
-    data = data.to(device)
-    labels = (vtype.to(device) * 2) + direc.to(device)
-    embeddings = extract_embedding(model, data)
-    sp, sn = convert_label_to_similarity(embeddings, labels)
-    if sp.numel() == 0 or sn.numel() == 0:
-        return None
-    return criterion(sp, sn)
-
-
-def train_one_epoch(model, loader, optimizer, device, criterion, epoch_label: str) -> float:
-    model.train()
-    total_loss = 0.0
-    usable_batches = 0
-    for batch in tqdm(loader, desc=epoch_label):
-        optimizer.zero_grad()
-        loss = circle_loss_for_batch(model, batch, device, criterion)
-        if loss is None:
-            continue
-        loss.backward()
-        optimizer.step()
-        total_loss += loss.item()
-        usable_batches += 1
-
-    if usable_batches == 0:
-        raise RuntimeError("No valid batches produced a CircleLoss signal. Increase batch size or ensure label diversity.")
-
-    return total_loss / usable_batches
-
-
-def evaluate(model, loader, device, criterion) -> float:
-    model.eval()
-    total_loss = 0.0
-    usable_batches = 0
-    with torch.no_grad():
-        for batch in loader:
-            loss = circle_loss_for_batch(model, batch, device, criterion)
-            if loss is None:
-                continue
-            total_loss += loss.item()
-            usable_batches += 1
-
-    if usable_batches == 0:
-        return float("nan")
-
-    return total_loss / usable_batches
 
 
 def collect_embeddings(model, loaders, device):
@@ -324,14 +272,13 @@ def train_one_epoch_arcface(model, metric_fc, loader, optimizer, device, criteri
     accuracy = (total_correct / total_samples) if total_samples > 0 else float("nan")
     return avg_loss, accuracy
 
-def evaluate_arcface(model, metric_fc, loader, device, criterion, num_classes: int) -> tuple[float, float, np.ndarray]:
+def evaluate_arcface(model, metric_fc, loader, device, criterion) -> tuple[float, float]:
     model.eval()
     metric_fc.eval()
     total_loss = 0.0
     usable_batches = 0
     total_correct = 0
     total_samples = 0
-    conf_mat = np.zeros((num_classes, num_classes), dtype=np.int64)
     
     with torch.no_grad():
         for batch in loader:
@@ -347,17 +294,15 @@ def evaluate_arcface(model, metric_fc, loader, device, criterion, num_classes: i
             preds = logits.argmax(dim=1)
             total_correct += (preds == labels).sum().item()
             total_samples += labels.numel()
-            for t, p in zip(labels.view(-1).cpu().numpy(), preds.view(-1).cpu().numpy()):
-                conf_mat[int(t), int(p)] += 1
             
             total_loss += loss.item()
             usable_batches += 1
 
     if usable_batches == 0:
-        return float("nan"), float("nan"), conf_mat
+        return float("nan"), float("nan")
     avg_loss = total_loss / usable_batches
     accuracy = (total_correct / total_samples) if total_samples > 0 else float("nan")
-    return avg_loss, accuracy, conf_mat
+    return avg_loss, accuracy
 
 
 def main() -> None:
@@ -386,8 +331,6 @@ def main() -> None:
         "LEARNING_RATE": args.lr,
         "ENCODER_WEIGHTS": args.encoder_weights or "(none)",
         "NO_TRAIN": args.no_train,
-        "MARGIN": args.margin,
-        "GAMMA": args.gamma,
         "REPRESENTATION": representation,
         "VISUALIZATION": args.visualization,
         "DIMENSION_LATENT_SPACE": args.dimension,
@@ -477,8 +420,8 @@ def main() -> None:
             train_loss, train_acc = train_one_epoch_arcface(
                 model, metric_fc, train_loader, optimizer, device, criterion, epoch_label
             )
-            val_loss, val_acc, conf_mat = evaluate_arcface(
-                model, metric_fc, val_loader, device, criterion, NUM_CLASSES
+            val_loss, val_acc = evaluate_arcface(
+                model, metric_fc, val_loader, device, criterion
             )
 
             logger.info(
@@ -490,9 +433,6 @@ def main() -> None:
                 f"{val_loss:.4f}" if math.isfinite(val_loss) else "nan",
                 f"{val_acc * 100:.2f}%" if math.isfinite(val_acc) else "nan",
             )
-
-            if np.any(conf_mat):
-                logger.info("Validation confusion matrix:\n%s", conf_mat)
 
             if math.isfinite(val_loss) and val_loss < best_val_loss:
                 best_val_loss = val_loss
