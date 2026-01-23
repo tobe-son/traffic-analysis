@@ -24,12 +24,12 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
   --main-data-dir ./data/processed/datasets \
-  --n-trials 200 \
+  --n-trials 100 \
   --min-epochs 10 \
-  --max-epochs 1000 \
+  --max-epochs 200 \
   --hpo-config ./configs/optuna_labelclustering_hpo.json \
   --storage sqlite:///outputs/hpo_labelclustering.db \
-  --study-name cl_optuna_vgg11_loc1-6_v2 \
+  --study-name cl_optuna_vgg11_loc1-6_v1 \
   --reset-study
 
 # resnet(legacy)のoptuna最適化
@@ -38,12 +38,12 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
   --main-data-dir ./data/processed/datasets \
-  --n-trials 200 \
+  --n-trials 100 \
   --min-epochs 10 \
-  --max-epochs 1000 \
+  --max-epochs 200 \
   --hpo-config ./configs/optuna_labelclustering_hpo.json \
   --storage sqlite:///outputs/hpo_labelclustering.db \
-  --study-name cl_optuna_resnet_loc1-6_v2 \
+  --study-name cl_optuna_resnet_loc1-6_v1 \
   --reset-study
 
   # resnet18のoptuna最適化
@@ -52,12 +52,12 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True MPLBACKEND=Agg /home/tobeson/mi
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
   --main-data-dir ./data/processed/datasets \
-  --n-trials 200 \
+  --n-trials 100 \
   --min-epochs 10 \
   --max-epochs 200 \
   --hpo-config ./configs/optuna_labelclustering_resnet18_hpo.json \
   --storage sqlite:///outputs/hpo_labelclustering.db \
-  --study-name cl_optuna_resnet18_loc1-6_v2 \
+  --study-name cl_optuna_resnet18_loc1-6_v1 \
   --reset-study \
   --oom-retry-max 5 --oom-min-batch-size 4 \
   --amp
@@ -68,10 +68,10 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
   --main-data-dir ./data/processed/datasets \
-  --n-trials 200 \
+  --n-trials 100 \
   --min-epochs 10 \
-  --max-epochs 1000 \
+  --max-epochs 200 \
   --hpo-config ./configs/optuna_labelclustering_hpo.json \
   --storage sqlite:///outputs/hpo_labelclustering.db \
-  --study-name cl_optuna_resnet50_loc1-6_v2 \
+  --study-name cl_optuna_resnet50_loc1-6_v1 \
   --reset-study
