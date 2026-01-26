@@ -1,4 +1,4 @@
-# 実験0: 多様体の取得
+# 実験0: 多様体の取得HPO
 
 # CNN-Smallのoptuna最適化
 MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_autoencoder.py \
