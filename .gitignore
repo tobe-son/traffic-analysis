@@ -45,7 +45,6 @@ tb_logs/ # PyTorch Lightning, TensorBoardのログ
 traf_ana.egg-info/
 
 # Loss関数
-src/loss/*.py
 
 # ----------------------------------------------------
 # 4. ノートブックのチェックポイント
