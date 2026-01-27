@@ -216,5 +216,60 @@ plotly が利用できる場合は以下も出ます:
 - `optuna_parallel_coordinate.png`
 - `optuna_hyperparameter_importance.png`
 
-図が生成できない場合は `optuna_plots.log` に理由が残ります。
+
+---
+
+# HPOのベスト重みを保存・可視化する
+
+## 1. ベスト重みを保存する（HPO実行時）
+
+各HPOスクリプトで `--export-best-weights` を付けると、best trial の重みが
+`outputs/optuna_studies/<study_name>/` にコピーされます。
+
+例:
+
+```bash
+MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering.py \
+	--model vgg11 \
+	--data-selection loc1-6 \
+	--data-csv ./data/processed/datasets/data_1-6.csv \
+	--main-data-dir ./data/processed/datasets \
+	--n-trials 100 \
+	--min-epochs 10 \
+	--max-epochs 200 \
+	--hpo-config ./configs/optuna_labelclustering_hpo.json \
+	--storage sqlite:///outputs/hpo_labelclustering.db \
+	--study-name cl_optuna_vgg11_loc1-6_v1 \
+	--export-best-weights
+```
+
+## 2. ベスト重みで t-SNE 可視化する
+
+`src/metric/visualize_labelclustering_tsne.py` を使うと、学習済み重み + データCSVから
+t-SNE 可視化を実行できます。
+
+### a) 直接パス指定
+
+```bash
+MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/visualize_labelclustering_tsne.py \
+	--model vgg11 \
+	--encoder-weights ./outputs/optuna_studies/cl_optuna_vgg11_loc1-6_v1/best_encoder_vgg11.pth \
+	--data-selection loc1-6 \
+	--data-csv ./data/processed/datasets/data_1-6.csv \
+	--main-data-dir ./data/processed/datasets \
+	--visualization t-SNE
+```
+
+### b) Optunaのstudyから自動解決
+
+```bash
+MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/visualize_labelclustering_tsne.py \
+	--model vgg11 \
+	--study-name cl_optuna_vgg11_loc1-6_v1 \
+	--storage sqlite:///outputs/hpo_labelclustering.db \
+	--data-selection loc1-6 \
+	--data-csv ./data/processed/datasets/data_1-6.csv \
+	--main-data-dir ./data/processed/datasets \
+	--visualization t-SNE
+```
 

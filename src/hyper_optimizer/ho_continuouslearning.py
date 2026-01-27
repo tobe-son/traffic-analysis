@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import gc
+import shutil
 import math
 import sys
 from pathlib import Path
@@ -155,6 +156,15 @@ def parse_hpo_args() -> argparse.Namespace:
         "--save-checkpoints",
         action="store_true",
         help="Save best/last encoder weights per trial (can consume disk).",
+    )
+
+    parser.add_argument(
+        "--export-best-weights",
+        action="store_true",
+        help=(
+            "Copy the best trial's encoder weights into outputs/optuna_studies/<study_name>/ after optimization. "
+            "This implicitly enables --save-checkpoints."
+        ),
     )
 
     parser.add_argument(
@@ -580,6 +590,9 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
 def main() -> None:
     cli_args = parse_hpo_args()
 
+    if cli_args.export_best_weights and not cli_args.save_checkpoints:
+        cli_args.save_checkpoints = True
+
     sampler = optuna.samplers.TPESampler(seed=cli_args.seed)
     pruner = build_pruner(cli_args.pruner)
 
@@ -649,6 +662,7 @@ def main() -> None:
         "pruner": cli_args.pruner,
         "n_jobs": cli_args.n_jobs,
         "save_checkpoints": cli_args.save_checkpoints,
+        "export_best_weights": cli_args.export_best_weights,
         "argv": sys.argv,
     }
 
@@ -658,6 +672,20 @@ def main() -> None:
         storage=cli_args.storage,
         meta=meta,
     )
+
+    if cli_args.export_best_weights and completed:
+        best_trial = study.best_trial
+        best_dir = Path(str(best_trial.user_attrs.get("output_dir", "")))
+        best_encoder = best_dir / f"best_encoder_{cli_args.model}.pth"
+        if best_dir and best_encoder.exists():
+            dest = out_path / f"best_encoder_{cli_args.model}.pth"
+            shutil.copy2(best_encoder, dest)
+            print("Best encoder copied to:", str(dest))
+        else:
+            print(
+                "Warning: best encoder checkpoint not found. "
+                "Ensure --save-checkpoints is enabled and the trial completed successfully."
+            )
 
     print("Artifacts in:", str(out_path))
     print("Optuna summary:", str(best_json_path))
