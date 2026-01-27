@@ -1,7 +1,7 @@
 # 実験2: ArcFace Loss による潜在空間の取得HPO
 
 # CNN-Smallのoptuna最適化
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering_arcface.py \
+MPLBACKEND=Agg python src/hyper_optimizer/ho_labelclustering_arcface.py \
   --model small \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -11,14 +11,17 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
   --max-epochs 1000 \
   --hpo-config ./configs/optuna_labelclustering_arcface_hpo.json \
   --storage sqlite:///outputs/hpo_labelclustering_arcface.db \
-  --study-name cl_arcface_optuna_small_loc1-6_v1
+  --study-name cl_arcface_optuna_small_loc1-6_v1  \
+  --export-best-weights \
+  --reset-study \
+  --n-jobs 1
 
 # NOTE: 以前の study を同じ名前で再開したい場合、探索空間(JSON)を変更すると Optuna が
 # "CategoricalDistribution does not support dynamic value space" で停止します。
 # その場合は (A) study 名を変える (推奨) / (B) `--reset-study` を付けて削除してやり直してください。
 
 # VGG11のoptuna最適化
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering_arcface.py \
+MPLBACKEND=Agg python src/hyper_optimizer/ho_labelclustering_arcface.py \
   --model vgg11 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -27,12 +30,13 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
   --min-epochs 10 \
   --max-epochs 200 \
   --hpo-config ./configs/optuna_labelclustering_arcface_hpo.json \
-  --storage sqlite:///outputs/hpo_labelclustering_arcface.db \
+  --storage sqlite:///outputs/hpo_labelclustering_arcface_vgg11.db \
   --study-name cl_arcface_optuna_vgg11_loc1-6_v1 \
+  --export-best-weights \
   --reset-study
 
 # resnet(legacy)のoptuna最適化
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering_arcface.py \
+MPLBACKEND=Agg python src/hyper_optimizer/ho_labelclustering_arcface.py \
   --model resnet \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -43,10 +47,11 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
   --hpo-config ./configs/optuna_labelclustering_arcface_hpo.json \
   --storage sqlite:///outputs/hpo_labelclustering_arcface.db \
   --study-name cl_arcface_optuna_resnet_loc1-6_v1 \
-  --reset-study
+  --export-best-weights \
+  --reset-study   
 
   # resnet18のoptuna最適化
-PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering_arcface.py \
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True MPLBACKEND=Agg python src/hyper_optimizer/ho_labelclustering_arcface.py \
   --model resnet18 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -55,14 +60,15 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True MPLBACKEND=Agg /home/tobeson/mi
   --min-epochs 10 \
   --max-epochs 200 \
   --hpo-config ./configs/optuna_labelclustering_arcface_hpo.json \
-  --storage sqlite:///outputs/hpo_labelclustering_arcface.db \
+  --storage sqlite:///outputs/hpo_labelclustering_arcface_resnet18.db \
   --study-name cl_arcface_optuna_resnet18_loc1-6_v1 \
   --reset-study \
   --oom-retry-max 5 --oom-min-batch-size 4 \
+  --export-best-weights  \
   --amp
 
   # resnet50のoptuna最適化
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering_arcface.py \
+MPLBACKEND=Agg python src/hyper_optimizer/ho_labelclustering_arcface.py \
   --model resnet50 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -71,8 +77,9 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
   --min-epochs 10 \
   --max-epochs 200 \
   --hpo-config ./configs/optuna_labelclustering_arcface_hpo.json \
-  --storage sqlite:///outputs/hpo_labelclustering_arcface.db \
+  --storage sqlite:///outputs/hpo_labelclustering_arcface_resnet50.db \
   --study-name cl_arcface_optuna_resnet50_loc1-6_v1 \
   --reset-study \
   --oom-retry-max 5 --oom-min-batch-size 4 \
+  --export-best-weights  \
   --amp
