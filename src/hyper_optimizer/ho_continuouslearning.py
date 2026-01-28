@@ -44,6 +44,7 @@ from metric.ContinuousLearning import (
     evaluate,
     log_hyperparameters,
     log_ratio_loss_for_batch,
+    resolve_checkpoint_paths,
     resolve_hop_length,
     resolve_representation,
     set_global_seed,
@@ -129,6 +130,12 @@ def parse_hpo_args() -> argparse.Namespace:
 
     parser.add_argument("--norm-p", type=float, default=None, help="Fix LogRatioLoss p (otherwise tuned)")
     parser.add_argument("--eps", type=float, default=None, help="Fix LogRatioLoss eps (otherwise tuned)")
+
+    parser.add_argument("--resume-dir", default=None, help="Directory with pretrained encoder checkpoints")
+    parser.add_argument("--resume-checkpoint", choices=["best", "last"], default="best")
+    parser.add_argument("--init-encoder-state", default=None, help="Direct path to encoder .pth")
+    parser.add_argument("--init-optimizer-state", default=None, help="Direct path to optimizer .pth")
+    parser.add_argument("--load-optimizer", action="store_true", help="Restore optimizer state if available")
 
     parser.add_argument("--n-trials", type=int, default=20)
     parser.add_argument("--timeout", type=int, default=None)
@@ -445,6 +452,11 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
             "REPRESENTATION": representation,
             "SEED": cli_args.seed,
             "HPO_CONFIG": cli_args.hpo_config or "(none)",
+            "RESUME_DIR": cli_args.resume_dir,
+            "RESUME_CHECKPOINT": cli_args.resume_checkpoint,
+            "INIT_ENCODER_STATE": cli_args.init_encoder_state,
+            "INIT_OPTIMIZER_STATE": cli_args.init_optimizer_state,
+            "LOAD_OPTIMIZER": cli_args.load_optimizer,
         }
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -483,6 +495,22 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
             criterion = LogRatioLoss(p=norm_p, eps=eps).to(device)
             optimizer = optim.Adam(model.parameters(), lr=lr)
             scaler = GradScaler(enabled=(cli_args.amp and device.type == "cuda"))
+
+            encoder_ckpt, optimizer_ckpt = resolve_checkpoint_paths(cli_args, model_key, logger)
+            if encoder_ckpt is not None and encoder_ckpt.exists():
+                state = torch.load(encoder_ckpt, map_location=device)
+                model.load_state_dict(state)
+                logger.info("Loaded encoder weights from %s", encoder_ckpt)
+            elif encoder_ckpt is not None:
+                logger.warning("指定したエンコーダ重み %s が見つかりませんでした。", encoder_ckpt)
+
+            if cli_args.load_optimizer:
+                if optimizer_ckpt is not None and optimizer_ckpt.exists():
+                    opt_state = torch.load(optimizer_ckpt, map_location=device)
+                    optimizer.load_state_dict(opt_state)
+                    logger.info("Loaded optimizer state from %s", optimizer_ckpt)
+                elif optimizer_ckpt is not None:
+                    logger.warning("指定したオプティマイザ状態 %s が見つかりませんでした。", optimizer_ckpt)
 
             best_val_loss = float("inf")
             best_epoch = -1
@@ -654,6 +682,11 @@ def main() -> None:
         "hop_length": cli_args.hop_length,
         "norm_p": cli_args.norm_p,
         "eps": cli_args.eps,
+        "resume_dir": cli_args.resume_dir,
+        "resume_checkpoint": cli_args.resume_checkpoint,
+        "init_encoder_state": cli_args.init_encoder_state,
+        "init_optimizer_state": cli_args.init_optimizer_state,
+        "load_optimizer": cli_args.load_optimizer,
         "min_epochs": cli_args.min_epochs,
         "max_epochs": cli_args.max_epochs,
         "test_split": cli_args.test_split,
