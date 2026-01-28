@@ -58,7 +58,7 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True MPLBACKEND=Agg python src/hyper
   --n-trials 100 \
   --min-epochs 10 \
   --max-epochs 200 \
-  --hpo-config ./configs/optuna_labelclustering_hpo.json \
+  --hpo-config ./configs/optuna_labelclustering_resnet_hpo.json \
   --storage sqlite:///outputs/hpo_labelclustering_resnet18.db \
   --study-name cl_optuna_resnet18_loc1-6_v1 \
   --export-best-weights  \
@@ -75,7 +75,7 @@ MPLBACKEND=Agg python src/hyper_optimizer/ho_labelclustering.py \
   --n-trials 100 \
   --min-epochs 10 \
   --max-epochs 200 \
-  --hpo-config ./configs/optuna_labelclustering_hpo.json \
+  --hpo-config ./configs/optuna_labelclustering_resnet_hpo.json \
   --storage sqlite:///outputs/hpo_labelclustering_resnet50.db \
   --study-name cl_optuna_resnet50_loc1-6_v1 \
   --export-best-weights  \
