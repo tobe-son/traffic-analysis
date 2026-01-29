@@ -7,26 +7,36 @@
 
 ## プロジェクトの目的
 
-本プロジェクトは、従来の環境音解析手法が抱える録音条件依存やノイズの影響を克服し、環境条件に左右されない安定した特徴抽出を実現するための深層学習手法の検証を目的としています。具体的には、深層距離学習（Circle Loss や Log-ratio Loss）を用いて、環境音から低次元の潜在空間表現を獲得し、その有用性を評価しています。
+本プロジェクトは、従来の環境音解析手法が抱える録音条件依存やノイズの影響を克服し、環境条件に左右されない安定した特徴抽出を実現するための深層学習手法の検証を目的としています。具体的には、深層距離学習を用いて、環境音から低次元の潜在空間表現を獲得します。さらに、実環境で録音された音声を潜在空間に投射してシステムの有用性を評価します。
 
 ## 背景
 
-従来の環境音解析では、ノイズや録音環境の違いが大きな障壁となっており、直接的な特徴抽出が難しいという課題がありました。本研究では、CNN を用いた特徴抽出と深層距離学習を組み合わせることで、環境条件に依存しない特徴空間を取得することを試みました。
+従来の環境音解析では、ノイズや録音環境の違いが大きな障壁となっており、直接的な特徴抽出が難しいという課題がありました。昨年度の研究では、CNN を用いた特徴抽出と深層距離学習を組み合わせることで、環境条件に依存しない特徴空間を取得することを試みました。本研究では、昨年度の研究で使用したアーキテクチャを改良し、ハイパーパラメータの調整も試みました。さらにモニタリングシステムとしての有用性の評価を試みました。
 
 ## 研究概要
 
-本プロジェクトは、環境音から交通監視に有用な特徴を抽出するため、深層距離学習を用いた潜在空間表現の獲得手法を検証するものです。実験は以下の3種類を行い、プログラム実装面での詳細な検証を行いました。
+本プロジェクトは、第一段階として、環境音から交通監視に有用な特徴を抽出し、深層距離学習を用いて潜在空間を取得と速度予測モデルの構築を行いました。実験は以下の4種類を行い、プログラム実装面での詳細な検証を行いました。
 
 - **実験１： Circle Loss による潜在空間の取得**  
    車種（car, cv）および進行方向（right, left）のラベルを用い、CNNエンコーダ（チャネル構成：1→16→32→64→64、すべて3×3カーネル、stride=2、padding=1）で低次元表現を学習しました。Adam（学習率1e-3、バッチサイズ32）を用いて300エポックで学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
 
-- **実験２： Log-ratio Loss による潜在空間の取得**  
-   Circle Lossで事前学習したモデルに対し、連続値の速度ラベルを反映させるためLog-ratio Lossを適用。Adam（学習率1e-3、バッチサイズ32）で100エポック学習し、t-SNEによる可視化で速度情報が保持された潜在空間が形成されることを確認しました。
+- **実験２： Arcface Loss による潜在空間の取得**  
+   実験1と同様にArcface Lossを用いて低次元表現を学習しました。Adam（学習率1e-3、バッチサイズ32）を用いて300エポックで学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
 
-- **実験３： 速度予測モデルの構築**  
+- **実験３： Log-ratio Loss による潜在空間の取得**
+    Circle LossとArcface Lossで事前学習したモデルに対し、連続値の速度ラベルを反映させるためLog-ratio Lossを適用。Adam（学習率1e-3、バッチサイズ32）で100エポック学習し、t-SNEによる可視化で速度情報が保持された潜在空間が形成されることを確認しました。
+
+- **実験４： 速度予測モデルの構築**  
    Log-ratio Lossで得られた潜在空間の特徴を活用し、CNNエンコーダの出力を全結合層で64次元に圧縮後、DNN（構成：64→128→1）を用いて速度を回帰予測するモデルを構築しました。Adam（学習率1e-3、バッチサイズ32）で100エポック学習した結果、事前学習済みCNNの有用性が示され、平均で約±5.4 km/hの誤差内で速度予測が可能であることが確認されました。
 
-## 主な機能とモジュール
+第二段階として、作成したモデルに実データを適用して、システムの有用性を検証しました。実験は以下の2種類を行いました。
+- **実験５： IDMTデータセットを用いた車種分類評価**  
+   予定
+
+- **実験６： vs13データセットを用いた速度推定評価**  
+   予定
+
+## 主な機能とモジュール（執筆中）
 
 本プログラムは、以下の主要なモジュールで構成されています。
 
@@ -59,7 +69,7 @@
 - **workfolder/**  
   - **simulation/**：ダウンロードした学習用データを格納するためのフォルダです。
 
-## 環境構築と実行方法
+## 環境構築と実行方法（執筆中）
 
 以下の手順で環境をセットアップし、プログラムを実行してください。
 
@@ -71,7 +81,7 @@
 1. **リポジトリのクローン**  
     ```bash
     git clone https://github.com/tobe-son/traffic-analysis.git
-  cd traffic-analysis
+    cd traffic-analysis
     ```
 
 2. **依存パッケージのインストール**  
@@ -83,7 +93,7 @@
 
    **環境構築手順:**  
    ```bash
-  conda env create -f environment.yml
+   conda env create -f environment.yml
    conda activate traf_ana
    ```
    ただし、Condaの環境が導入され、CUDAのバージョンは12.1以上であることが前提です。
@@ -93,9 +103,9 @@
    - 深層距離学習の損失関数（LogRatioLoss）は、[Githubページ](https://github.com/sung-yeon-kim/Beyond-Binary-Supervision-CVPR19)からダウンロードし、`main.py`、`utils.py`、`LogRatioLoss.py`を`src/loss/`ディレクトリに配置してください。  
    - 学習データは、[Zenodo](https://zenodo.org/records/10700792)から`simulation.zip`をダウンロードして解凍し、`loc1`～`loc6`のフォルダを`data/raw/simulation/`に配置してください。
 
-   - 追加の学習データ[Zenodo](https://zenodo.org/records/7551553)https://www.idmt.fraunhofer.de/en/publications/datasets/traffic.html
+   - 追加の学習データ[Zenodo](https://zenodo.org/records/7551553)からダウンロードして解凍してください
 
-4. **データの準備**  
+4. **シミュレーションデータの準備**  
    - 以下のコマンドを実行して、走行音が最も大きい6秒間のデータをトリミングします。  
      ```bash
      python src/sim_data_tool/cut.py
@@ -105,7 +115,28 @@
      python src/sim_data_tool/combain.py
      ```
 
-5. **プログラムの実行**  
+5. **実データの準備**
+   ※詳細はsrc/real_data_tool/README.mdを参照してください。
+   - まず、IDMTデータセットを `learn_tool.settings.prepare_dataloader` が読める形式へ変換します。
+     ```bash
+     MPLBACKEND=Agg python src/real_data_tool/prepare_real_data.py idmt \
+     --raw-dir ./data/raw/IDMT_Traffic \
+     --out-dir ./data/processed/real/idmt_traffic \
+     --csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
+     --duration 6.0 \
+     --sampling-rate 16000
+     ```  
+   - 次に、VS13データセットを `learn_tool.settings.prepare_dataloader` が読める形式へ変換します。
+     ```bash
+     MPLBACKEND=Agg python src/real_data_tool/prepare_real_data.py vs13 \
+     --raw-dir ./data/raw/VS13 \
+     --out-dir ./data/processed/real/vs13 \
+     --csv ./data/processed/real/vs13/vs13.csv \
+     --duration 6.0 \
+     --sampling-rate 16000
+     ```  
+
+6. **プログラムの実行（執筆中）**  
    - **実験０（多様体取得）**  
      各実験前に、対象データ、可視化手法、ハイパーパラメータ等のパラメータ定義を必要に応じて変更してください。  
      - 1次元オートエンコーダの学習:  
@@ -139,7 +170,7 @@
      poetry run python -m encoder.speedPrediction
      ```
 
-6. **その他のプログラム**
+7. **その他のプログラム**
    - t-SNEによる可視化
       `outputs/`フォルダに保存された`latent_spaces`ファイルと`metadata.csv`ファイルを`TSNE/`直下に配置し、以下のプログラムを実行することで、t-SNEによる可視化が行えます。`TSNE/tsne.py`の中でハイパパラメータを変更することができます。
      ```bash
@@ -155,6 +186,8 @@
 本研究では、環境音の研究コミュニティーであるDCASEが2024年に主催した DCASE 2024 Task10 を参考にしています。以下に示すGitHubリポジトリとは互換性があり、１つのフォルダに統合してプログラムを動作させることができます。
 - [ホームページ](https://dcase.community/challenge2024/task-acoustic-based-traffic-monitoring)
 - [GitHub](https://github.com/boschresearch/acoustic-traffic-simulation-counting)
+
+- [IDMTデータセット](https://www.idmt.fraunhofer.de/en/publications/datasets/traffic.html)
 
 ## ライセンス
 

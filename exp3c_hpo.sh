@@ -1,5 +1,6 @@
-# 実験3: LogRatio Loss による潜在空間の取得HPO
+# 実験3-C: LogRatio Loss による継続事前学習による潜在空間の取得HPO
 
+# Circle Lossの事前学習からの継続事前学習
 # CNN-Smallのoptuna最適化
 MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --model small \
@@ -10,14 +11,11 @@ MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --min-epochs 10 \
   --max-epochs 1000 \
   --hpo-config ./configs/optuna_continuouslearning_hpo.json \
-  --storage sqlite:///outputs/hpo_logratiolearning.db \
-  --study-name log_optuna_small_loc1-6_v1  \
+  --storage sqlite:///outputs/hpo_continuouslearning.db \
+  --study-name cont_optuna_small_loc1-6_v1  \
+  --init-encoder-state ./output/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth \
   --export-best-weights \
   --reset-study
-
-# NOTE: 以前の study を同じ名前で再開したい場合、探索空間(JSON)を変更すると Optuna が
-# "CategoricalDistribution does not support dynamic value space" で停止します。
-# その場合は (A) study 名を変える (推奨) / (B) `--reset-study` を付けて削除してやり直してください。
 
 # VGG11のoptuna最適化
 MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
@@ -25,59 +23,60 @@ MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
   --main-data-dir ./data/processed/datasets \
-  --n-trials 100 \
+  --n-trials 200 \
   --min-epochs 10 \
-  --max-epochs 200 \
+  --max-epochs 1000 \
   --hpo-config ./configs/optuna_continuouslearning_hpo.json \
-  --storage sqlite:///outputs/hpo_logratiolearning_vgg11.db \
-  --study-name log_optuna_vgg11_loc1-6_v1 \
+  --storage sqlite:///outputs/hpo_continuouslearning_vgg11.db \
+  --study-name cont_optuna_vgg11_loc1-6_v1  \
+  --init-encoder-state ./output/optuna_studies/cl_optuna_vgg11_loc1-6_v1/best_encoder_vgg11.pth \
   --export-best-weights \
   --reset-study
 
-# resnet(legacy)のoptuna最適化
-#PLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
+# renet(legacy)のoptuna最適化
+#MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
 #  --model resnet \
 #  --data-selection loc1-6 \
 #  --data-csv ./data/processed/datasets/data_1-6.csv \
 #  --main-data-dir ./data/processed/datasets \
-#  --n-trials 100 \
+#  --n-trials 200 \
 #  --min-epochs 10 \
-#  --max-epochs 200 \
+#  --max-epochs 1000 \
 #  --hpo-config ./configs/optuna_continuouslearning_hpo.json \
-#  --storage sqlite:///outputs/hpo_continuouslearning.db \
-#  --study-name cont_optuna_resnet_loc1-6_v1 \
-#  --reset-study
+#  --storage sqlite:///outputs/hpo_continuouslearning_resnet.db \
+#  --study-name cont_optuna_resnet_loc1-6_v1  \
+#  --init-encoder-state ./output/optuna_studies/cl_optuna_resnet_loc1-6_v1/best_encoder_resnet.pth \
+#  --export-best-weights \
+#  --reset-study    
 
-  # resnet18のoptuna最適化
+# resnet18のoptuna最適化
 MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --model resnet18 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
   --main-data-dir ./data/processed/datasets \
-  --n-trials 100 \
+  --n-trials 200 \
   --min-epochs 10 \
-  --max-epochs 200 \
+  --max-epochs 1000 \
   --hpo-config ./configs/optuna_continuouslearning_hpo.json \
-  --storage sqlite:///outputs/hpo_logratiolearning_resnet18.db \
-  --study-name log_optuna_resnet18_loc1-6_v1 \
+  --storage sqlite:///outputs/hpo_continuouslearning_resnet18.db \
+  --study-name cont_optuna_resnet18_loc1-6_v1  \
+  --init-encoder-state ./output/optuna_studies/cl_optuna_resnet18_loc1-6_v1/best_encoder_resnet18.pth \
   --export-best-weights \
-  --reset-study \
-  --oom-retry-max 5 --oom-min-batch-size 4 \
-  --amp
+  --reset-study
 
-  # resnet50のoptuna最適化
+# resnet50のoptuna最適化
 MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --model resnet50 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
   --main-data-dir ./data/processed/datasets \
-  --n-trials 100 \
+  --n-trials 200 \
   --min-epochs 10 \
-  --max-epochs 200 \
+  --max-epochs 1000 \
   --hpo-config ./configs/optuna_continuouslearning_hpo.json \
-  --storage sqlite:///outputs/hpo_logratiolearning_resnet50.db \
-  --study-name log_optuna_resnet50_loc1-6_v1 \
+  --storage sqlite:///outputs/hpo_continuouslearning_resnet50.db \
+  --study-name cont_optuna_resnet50_loc1-6_v1  \
+  --init-encoder-state ./output/optuna_studies/cl_optuna_resnet50_loc1-6_v1/best_encoder_resnet50.pth \
   --export-best-weights \
-  --reset-study \
-  --oom-retry-max 5 --oom-min-batch-size 4 \
-  --amp
+  --reset-study
