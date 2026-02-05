@@ -1,24 +1,24 @@
 {
   "best_params": {
-    "arcface_m": 0.6998242743963199,
-    "arcface_s": 102.17864762119952,
+    "arcface_m": 0.6254704327928239,
+    "arcface_s": 97.1971011162941,
     "batch_size": 8,
-    "epochs": 142,
-    "hop_length": 160,
-    "lr": 0.008548135708709442,
+    "epochs": 65,
+    "hop_length": 512,
+    "lr": 0.009086412452593671,
     "mel": "ON",
     "n_fft": 512
   },
-  "best_trial_number": 77,
+  "best_trial_number": 93,
   "best_user_attrs": {
-    "best_epoch": 140,
+    "best_epoch": 65,
     "best_val_acc": 1.0,
     "effective_batch_size": 8,
-    "output_dir": "./outputs/2026-01-27/03-56-14"
+    "output_dir": "./outputs/2026-02-05/00-42-59"
   },
-  "best_value": 0.0,
+  "best_value": 2.701079495182057e-06,
   "direction": "StudyDirection.MINIMIZE",
-  "exported_at_utc": "2026-01-26T23:42:37.371106+00:00",
+  "exported_at_utc": "2026-02-04T15:46:38.857533+00:00",
   "meta": {
     "arcface_m": null,
     "arcface_s": null,
@@ -43,10 +43,13 @@
       "--storage",
       "sqlite:///outputs/hpo_labelclustering_arcface_vgg11.db",
       "--study-name",
-      "cl_arcface_optuna_vgg11_loc1-6_v1"
+      "cl_arcface_optuna_vgg11_loc1-6_v1",
+      "--export-best-weights",
+      "--reset-study"
     ],
     "data_csv": "./data/processed/datasets/data_1-6.csv",
     "data_selection": "loc1-6",
+    "export_best_weights": true,
     "hop_length": null,
     "hpo_config": "./configs/optuna_labelclustering_arcface_hpo.json",
     "main_data_dir": "./data/processed/datasets",
@@ -60,12 +63,12 @@
     "pruner": "median",
     "representation": null,
     "sampling_rate": 16000,
-    "save_checkpoints": false,
+    "save_checkpoints": true,
     "seed": 42,
     "test_split": 0.2
   },
-  "n_trials_complete": 33,
-  "n_trials_total": 102,
+  "n_trials_complete": 26,
+  "n_trials_total": 100,
   "storage": "sqlite:///outputs/hpo_labelclustering_arcface_vgg11.db",
   "study_name": "cl_arcface_optuna_vgg11_loc1-6_v1"
 }

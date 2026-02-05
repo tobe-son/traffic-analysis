@@ -1,24 +1,24 @@
 {
   "best_params": {
-    "arcface_m": 0.6650922896711077,
-    "arcface_s": 105.60569255502763,
-    "batch_size": 8,
-    "epochs": 124,
+    "arcface_m": 0.6368170064885347,
+    "arcface_s": 127.716620789869,
+    "batch_size": 32,
+    "epochs": 151,
     "hop_length": 512,
-    "lr": 0.006019807618507277,
+    "lr": 0.0069916916788886705,
     "mel": "ON",
     "n_fft": 2048
   },
-  "best_trial_number": 47,
+  "best_trial_number": 29,
   "best_user_attrs": {
-    "best_epoch": 124,
+    "best_epoch": 151,
     "best_val_acc": 1.0,
-    "effective_batch_size": 8,
-    "output_dir": "./outputs/2026-01-27/00-23-22"
+    "effective_batch_size": 32,
+    "output_dir": "./outputs/2026-02-03/18-23-31"
   },
-  "best_value": 6.357828281622347e-08,
+  "best_value": 7.109688681339321e-06,
   "direction": "StudyDirection.MINIMIZE",
-  "exported_at_utc": "2026-01-26T21:51:16.516288+00:00",
+  "exported_at_utc": "2026-02-03T10:33:30.774089+00:00",
   "meta": {
     "arcface_m": null,
     "arcface_s": null,
@@ -49,10 +49,12 @@
       "5",
       "--oom-min-batch-size",
       "4",
+      "--export-best-weights",
       "--amp"
     ],
     "data_csv": "./data/processed/datasets/data_1-6.csv",
     "data_selection": "loc1-6",
+    "export_best_weights": true,
     "hop_length": null,
     "hpo_config": "./configs/optuna_labelclustering_arcface_hpo.json",
     "main_data_dir": "./data/processed/datasets",
@@ -66,11 +68,11 @@
     "pruner": "median",
     "representation": null,
     "sampling_rate": 16000,
-    "save_checkpoints": false,
+    "save_checkpoints": true,
     "seed": 42,
     "test_split": 0.2
   },
-  "n_trials_complete": 33,
+  "n_trials_complete": 11,
   "n_trials_total": 100,
   "storage": "sqlite:///outputs/hpo_labelclustering_arcface_resnet18.db",
   "study_name": "cl_arcface_optuna_resnet18_loc1-6_v1"

@@ -14,11 +14,11 @@
     "best_epoch": 442,
     "best_val_acc": 1.0,
     "effective_batch_size": 32,
-    "output_dir": "./outputs/2026-01-26/13-21-08"
+    "output_dir": "./outputs/2026-02-02/10-13-05"
   },
   "best_value": 0.0,
   "direction": "StudyDirection.MINIMIZE",
-  "exported_at_utc": "2026-01-26T17:50:25.648619+00:00",
+  "exported_at_utc": "2026-02-02T06:18:08.136639+00:00",
   "meta": {
     "arcface_m": null,
     "arcface_s": null,
@@ -44,12 +44,14 @@
       "sqlite:///outputs/hpo_labelclustering_arcface.db",
       "--study-name",
       "cl_arcface_optuna_small_loc1-6_v1",
+      "--export-best-weights",
       "--reset-study",
       "--n-jobs",
       "1"
     ],
     "data_csv": "./data/processed/datasets/data_1-6.csv",
     "data_selection": "loc1-6",
+    "export_best_weights": true,
     "hop_length": null,
     "hpo_config": "./configs/optuna_labelclustering_arcface_hpo.json",
     "main_data_dir": "./data/processed/datasets",
@@ -63,7 +65,7 @@
     "pruner": "median",
     "representation": null,
     "sampling_rate": 16000,
-    "save_checkpoints": false,
+    "save_checkpoints": true,
     "seed": 42,
     "test_split": 0.2
   },
