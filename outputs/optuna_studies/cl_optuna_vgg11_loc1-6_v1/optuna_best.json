@@ -1,23 +1,23 @@
 {
   "best_params": {
     "batch_size": 8,
-    "epochs": 48,
-    "gamma": 16.01288232346502,
-    "hop_length": 128,
-    "lr": 0.00023454758163174888,
-    "margin": 0.34135336321693144,
+    "epochs": 114,
+    "gamma": 16.012906760706635,
+    "hop_length": 256,
+    "lr": 0.00018007609148665648,
+    "margin": 0.39640261141499106,
     "mel": "ON",
-    "n_fft": 2048
+    "n_fft": 1024
   },
-  "best_trial_number": 87,
+  "best_trial_number": 86,
   "best_user_attrs": {
-    "best_epoch": 48,
+    "best_epoch": 38,
     "effective_batch_size": 8,
-    "output_dir": "./outputs/2026-01-27/00-30-45"
+    "output_dir": "./outputs/2026-02-02/03-26-42"
   },
-  "best_value": 11.732011636098227,
+  "best_value": 10.913831885655721,
   "direction": "StudyDirection.MINIMIZE",
-  "exported_at_utc": "2026-01-26T16:19:08.507027+00:00",
+  "exported_at_utc": "2026-02-01T19:17:18.792988+00:00",
   "meta": {
     "argv": [
       "src/hyper_optimizer/ho_labelclustering.py",
@@ -38,12 +38,15 @@
       "--hpo-config",
       "./configs/optuna_labelclustering_hpo.json",
       "--storage",
-      "sqlite:///outputs/hpo_labelclustering.db",
+      "sqlite:///outputs/hpo_labelclustering_vgg11.db",
       "--study-name",
-      "cl_optuna_vgg11_loc1-6_v1"
+      "cl_optuna_vgg11_loc1-6_v1",
+      "--export-best-weights",
+      "--reset-study"
     ],
     "data_csv": "./data/processed/datasets/data_1-6.csv",
     "data_selection": "loc1-6",
+    "export_best_weights": true,
     "hop_length": null,
     "hpo_config": "./configs/optuna_labelclustering_hpo.json",
     "main_data_dir": "./data/processed/datasets",
@@ -56,12 +59,12 @@
     "pruner": "median",
     "representation": null,
     "sampling_rate": 16000,
-    "save_checkpoints": false,
+    "save_checkpoints": true,
     "seed": 42,
     "test_split": 0.2
   },
-  "n_trials_complete": 55,
-  "n_trials_total": 107,
-  "storage": "sqlite:///outputs/hpo_labelclustering.db",
+  "n_trials_complete": 56,
+  "n_trials_total": 100,
+  "storage": "sqlite:///outputs/hpo_labelclustering_vgg11.db",
   "study_name": "cl_optuna_vgg11_loc1-6_v1"
 }

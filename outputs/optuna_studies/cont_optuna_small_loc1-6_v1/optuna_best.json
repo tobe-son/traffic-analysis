@@ -1,23 +1,23 @@
 {
   "best_params": {
     "batch_size": 64,
-    "epochs": 832,
-    "eps": 0.0009996967165507421,
+    "epochs": 831,
+    "eps": 0.0009996787880085008,
     "hop_length": 512,
-    "lr": 0.0007434288522946706,
+    "lr": 0.0003816090909040719,
     "mel": "ON",
     "n_fft": 2048,
-    "norm_p": 2.1092511526783984
+    "norm_p": 1.0729841766914827
   },
   "best_trial_number": 134,
   "best_user_attrs": {
-    "best_epoch": 573,
+    "best_epoch": 744,
     "effective_batch_size": 64,
-    "output_dir": "./outputs/2026-01-27/16-49-05"
+    "output_dir": "./outputs/2026-02-02/10-21-16"
   },
-  "best_value": 1.955074705183506,
+  "best_value": 2.4093041494488716,
   "direction": "StudyDirection.MINIMIZE",
-  "exported_at_utc": "2026-01-27T08:37:26.216742+00:00",
+  "exported_at_utc": "2026-02-02T01:36:20.293949+00:00",
   "meta": {
     "argv": [
       "src/hyper_optimizer/ho_continuouslearning.py",
@@ -41,6 +41,8 @@
       "sqlite:///outputs/hpo_continuouslearning.db",
       "--study-name",
       "cont_optuna_small_loc1-6_v1",
+      "--init-encoder-state",
+      "./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth",
       "--export-best-weights",
       "--reset-study"
     ],
@@ -50,6 +52,9 @@
     "export_best_weights": true,
     "hop_length": null,
     "hpo_config": "./configs/optuna_continuouslearning_hpo.json",
+    "init_encoder_state": "./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth",
+    "init_optimizer_state": null,
+    "load_optimizer": false,
     "main_data_dir": "./data/processed/datasets",
     "max_epochs": 1000,
     "mel": null,
@@ -60,12 +65,14 @@
     "norm_p": null,
     "pruner": "median",
     "representation": null,
+    "resume_checkpoint": "best",
+    "resume_dir": null,
     "sampling_rate": 16000,
     "save_checkpoints": true,
     "seed": 42,
     "test_split": 0.2
   },
-  "n_trials_complete": 33,
+  "n_trials_complete": 48,
   "n_trials_total": 200,
   "storage": "sqlite:///outputs/hpo_continuouslearning.db",
   "study_name": "cont_optuna_small_loc1-6_v1"

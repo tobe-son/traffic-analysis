@@ -13,7 +13,7 @@ MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --hpo-config ./configs/optuna_continuouslearning_hpo.json \
   --storage sqlite:///outputs/hpo_continuouslearning.db \
   --study-name cont_optuna_small_loc1-6_v1  \
-  --init-encoder-state ./output/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth \
+  --init-encoder-state ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth \
   --export-best-weights \
   --reset-study
 
@@ -29,7 +29,7 @@ MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --hpo-config ./configs/optuna_continuouslearning_hpo.json \
   --storage sqlite:///outputs/hpo_continuouslearning_vgg11.db \
   --study-name cont_optuna_vgg11_loc1-6_v1  \
-  --init-encoder-state ./output/optuna_studies/cl_optuna_vgg11_loc1-6_v1/best_encoder_vgg11.pth \
+  --init-encoder-state ./outputs/optuna_studies/cl_optuna_vgg11_loc1-6_v1/best_encoder_vgg11.pth \
   --export-best-weights \
   --reset-study
 
@@ -45,7 +45,7 @@ MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
 #  --hpo-config ./configs/optuna_continuouslearning_hpo.json \
 #  --storage sqlite:///outputs/hpo_continuouslearning_resnet.db \
 #  --study-name cont_optuna_resnet_loc1-6_v1  \
-#  --init-encoder-state ./output/optuna_studies/cl_optuna_resnet_loc1-6_v1/best_encoder_resnet.pth \
+#  --init-encoder-state ./outputs/optuna_studies/cl_optuna_resnet_loc1-6_v1/best_encoder_resnet.pth \
 #  --export-best-weights \
 #  --reset-study    
 
@@ -61,12 +61,13 @@ MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --hpo-config ./configs/optuna_continuouslearning_hpo.json \
   --storage sqlite:///outputs/hpo_continuouslearning_resnet18.db \
   --study-name cont_optuna_resnet18_loc1-6_v1  \
-  --init-encoder-state ./output/optuna_studies/cl_optuna_resnet18_loc1-6_v1/best_encoder_resnet18.pth \
+  --init-encoder-state ./outputs/optuna_studies/cl_optuna_resnet18_loc1-6_v1/best_encoder_resnet18.pth \
   --export-best-weights \
   --reset-study
 
 # resnet50のoptuna最適化
-MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
+python -c "import torch; torch.cuda.empty_cache(); print('GPU cache cleared')"
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --model resnet50 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -77,6 +78,6 @@ MPLBACKEND=Agg python src/hyper_optimizer/ho_continuouslearning.py \
   --hpo-config ./configs/optuna_continuouslearning_hpo.json \
   --storage sqlite:///outputs/hpo_continuouslearning_resnet50.db \
   --study-name cont_optuna_resnet50_loc1-6_v1  \
-  --init-encoder-state ./output/optuna_studies/cl_optuna_resnet50_loc1-6_v1/best_encoder_resnet50.pth \
+  --init-encoder-state ./outputs/optuna_studies/cl_optuna_resnet50_loc1-6_v1/best_encoder_resnet50.pth \
   --export-best-weights \
   --reset-study
