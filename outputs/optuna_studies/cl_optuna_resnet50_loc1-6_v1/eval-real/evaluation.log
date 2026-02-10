@@ -1,0 +1,15 @@
+2026-02-10 14:24:13,096 - INFO - Applied optuna param batch_size=4
+2026-02-10 14:24:13,096 - INFO - Applied optuna param hop_length=320
+2026-02-10 14:24:13,096 - INFO - Applied optuna param n_fft=512
+2026-02-10 14:24:13,096 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_resnet50_loc1-6_v1/best_encoder_resnet50.pth
+2026-02-10 14:24:13,097 - INFO - Loss type: circle
+2026-02-10 14:24:13,143 - INFO - Using device: cuda
+2026-02-10 14:24:13,609 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-10 14:24:37,795 - INFO - Data ready. feature_min=-100.000000 feature_max=46.114029
+2026-02-10 14:26:46,950 - INFO - Embedding extraction done: (8942, 32)
+2026-02-10 14:26:46,951 - INFO - Embedding dimension: 32
+2026-02-10 14:26:46,954 - INFO - Applied L2 normalization to embeddings.
+2026-02-10 14:26:54,241 - INFO - メタデータを outputs/optuna_studies/cl_optuna_resnet50_loc1-6_v1/eval-real/metadata.csv に保存しました。
+2026-02-10 14:26:54,241 - INFO - t-SNE による次元削減を開始します。
+2026-02-10 14:27:04,770 - INFO - UMAP による次元削減を開始します。
+2026-02-10 14:27:20,301 - INFO - Evaluation complete. Outputs in outputs/optuna_studies/cl_optuna_resnet50_loc1-6_v1/eval-real

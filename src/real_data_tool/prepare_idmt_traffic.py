@@ -59,7 +59,7 @@ def parse_filename(name: str) -> Optional[dict]:
         except ValueError:
             speed = None
 
-    direction = {"L": "left", "R": "right"}.get(direction_code)
+    direction = {"L": "right", "R": "left"}.get(direction_code)
     vehicle = VEHICLE_CODE_TO_NAME.get(vehicle_code)
 
     if direction is None or vehicle is None:
@@ -91,11 +91,14 @@ def discover_locations(meta: Iterable[dict]) -> IdmtMapping:
     return IdmtMapping(location_to_loc=mapping)
 
 
-def map_vehicle_to_project(vehicle_code: str, scheme: str) -> str:
+def map_vehicle_to_project(vehicle_code: str, scheme: str) -> Optional[str]:
     if scheme == "car_vs_cv":
-        # Map into the repo's existing binary label space.
-        # C/M => car-like, B/T => commercial/heavy
-        return "car" if vehicle_code in {"C", "M"} else "cv"
+        # Keep only car/truck. Drop motorcycle/bus to avoid forced labels.
+        if vehicle_code == "C":
+            return "car"
+        if vehicle_code == "T":
+            return "cv"
+        return None
     raise ValueError(f"Unknown scheme: {scheme}")
 
 
@@ -127,7 +130,10 @@ def build_rows(
                 meta["speed"] = 0.0
             else:
                 raise ValueError("unknown_speed must be one of: drop, zero")
-        meta["vehicle_type"] = map_vehicle_to_project(meta["vehicle_code"], scheme=vehicle_scheme)
+        vehicle_type = map_vehicle_to_project(meta["vehicle_code"], scheme=vehicle_scheme)
+        if vehicle_type is None:
+            continue
+        meta["vehicle_type"] = vehicle_type
         parsed.append(meta)
 
         if limit > 0 and len(parsed) >= limit:

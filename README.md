@@ -36,38 +36,46 @@
 - **実験６： vs13データセットを用いた速度推定評価**  
    予定
 
-## 主な機能とモジュール（執筆中）
+## 主な機能とモジュール
 
 本プログラムは、以下の主要なモジュールで構成されています。
 
-- **encoder/**  
-  学習に関連する主要なプログラム群を収めたフォルダです。  
-  - **auto_encoder/**  
-    - *auto-encoder.py*：1次元オートエンコーダを学習させるためのプログラム（論文には記載せず、前段階実験用として実施）  
-    - *base_model.py*：モデルの構造を定義するクラスを提供  
-    - *CNN_o*：DCASEコンペティションのベースラインに近いCNNエンコーダモデルを学習させるプログラム（前段階実験用）  
-    - *CNN_s*：CNNエンコーダモデル（CNN_oより大規模）の学習プログラム（前段階実験用）  
-  - **datasets/**  
-    学習に使用するデータを格納するフォルダです。  
-    - *locx_cut/*：loc1_cut～loc6_cutまで、各ロケーションごとの前処理済みデータ  
-    - *combain.py*：ダウンロードデータに含まれるメタデータを結合するスクリプト  
-  - **loss/**  
-    実験2で使用する深層距離学習用の損失関数を配置するフォルダです（こちらのコードは外部からダウンロードしてください）。  
-  - **metric_learning/**  
-    深層距離学習の実行に関するプログラム群です。  
-    - *LogRatioLoss.py*：実験2で用いる、連続ラベル対応のLogRatio Lossによる学習プログラム  
-    - *MetricLrarning.py*：実験1で用いる、Circle Lossによる学習プログラム  
-  - *kmeans.py*：データ全体に対してK-meansによるクラスタリングを実行し、ラベル付けを行うプログラム  
-  - *settings.py*：データ前処理および出力フォルダの設定を行うクラスを提供  
-  - *speedPrediction.py*：実験3の速度予測モデルを学習させるためのプログラム  
-  - *validation.py*：取得した潜在空間の評価（各ラベルごとの再構成誤差の算出など）を行うクラス  
-  - *visualize.py*：潜在空間や学習結果の可視化を行うためのクラス  
-
-- **TSNE/**  
-  - *tsne.py*：学習済みの潜在空間をt-SNEを用いて2次元に可視化するためのプログラム。パラメータ調整など、詳細な検証に利用可能です。
-
-- **workfolder/**  
-  - **simulation/**：ダウンロードした学習用データを格納するためのフォルダです。
+- **src/**
+  学習に関連する主要なプログラム群を収めたフォルダ
+  - **autoencoder/**
+    - *auto-encoder.py*：実験0：1次元オートエンコーダを学習させるためのプログラム（論文には記載せず、前段階実験用として実施）  
+    - *CNN_xxx.py*：モデルの構造を定義するクラスを提供  
+      - *CNN_o*：DCASEコンペティションのベースラインに近いCNNエンコーダモデルを学習させるプログラム（前段階実験用）  
+      - *CNN_s*：CNNオートエンコーダモデル（CNN_oより大規模）の学習プログラム（前段階実験用）
+      - *CNN_resnet*：CNNオートエンコーダResnetを定義
+      - *CNN_VGG11*：CNNオートエンコーダVGG11を定義
+      - *CNN_any*：実験で用いるCNNオートエンコーダすべてを定義、引数で使用するモデルを可変
+  - **encoder/**
+    実験1以降で使用するモデルを定義
+    - *base_model.py*：1次元畳み込みエンコーダ、CNN_s、CNN_oを定義
+    - *new_model.py*：その他実験で用いるエンコーダを定義
+  - **hyper_optimizer/**
+    実験2, 3, 4のハイパパラメータの最適化用の探索スクリプト
+    - 詳細は[資料](./docs/optuna.md)参照
+  - **learn_tool/**
+    深層距離学習の実行を補助するプログラム
+  - **loss/**
+    実験1, 2, 3で使用する深層距離学習用の損失関数を配置するフォルダ
+  - **metric/**
+    実験1, 2, 3の深層距離学習の学習スクリプト
+    - *LabelClustering.py*：実験1：Circle Lossを用いた深層距離学習スクリプト
+    - *LabelClustering_arcface.py*：実験2：Arcface Lossを用いた深層距離学習スクリプト
+    - *ContinuousLearning.py*：実験3：連続値ラベルに対応した誤差関数を用いた深層距離学習スクリプト
+  - **mlp/**
+    - *speedPrediction.py*：実験4：速度予測モデルを学習させるためスクリプト
+  - **real_data_tool/**
+    実データを処理するためのスクリプト
+  - **sim_data_tool/**
+    シミュレーションデータを処理するためのスクリプト
+- **data/**
+  学習に使用するデータを格納するフォルダ
+- **configs/**
+  HPOで探索するハイパパラメータの範囲の指定するjsonファイルを収めるフォルダ
 
 ## 環境構築と実行方法（執筆中）
 
@@ -98,7 +106,7 @@
    ```
    ただし、Condaの環境が導入され、CUDAのバージョンは12.1以上であることが前提です。
 
-3. **プログラムと学習データのダウンロード**  
+3. **プログラムと学習データのダウンロード**  （執筆中）
    - 深層距離学習の損失関数（CircleLoss）は、[Githubページ](https://github.com/TinyZeaMays/CircleLoss)からダウンロードし、`src/loss/`ディレクトリに`circle_loss.py`として配置してください。  
    - 深層距離学習の損失関数（LogRatioLoss）は、[Githubページ](https://github.com/sung-yeon-kim/Beyond-Binary-Supervision-CVPR19)からダウンロードし、`main.py`、`utils.py`、`LogRatioLoss.py`を`src/loss/`ディレクトリに配置してください。  
    - 学習データは、[Zenodo](https://zenodo.org/records/10700792)から`simulation.zip`をダウンロードして解凍し、`loc1`～`loc6`のフォルダを`data/raw/simulation/`に配置してください。
@@ -139,32 +147,102 @@
 6. **プログラムの実行（執筆中）**  
    - **実験０（多様体取得）**  
      各実験前に、対象データ、可視化手法、ハイパーパラメータ等のパラメータ定義を必要に応じて変更してください。  
-     - 1次元オートエンコーダの学習:  
-       ```bash
-       poetry run python -m encoder.auto_encoder.auto_encoder
-       ```  
-     - DCASE2024のベースラインモデルに近いCNNエンコーダモデルの学習:  
-       ```bash
-       poetry run python -m encoder.auto_encoder.CNN_o
-       ```  
-     - 昨年度研究で主に使用したCNNエンコーダモデルの学習:  
-       ```bash
-       poetry run python -m encoder.auto_encoder.CNN_s
-       ```
+     - 学習実行例
+       - 1次元オートエンコーダの学習:  
+         ```bash
+          MPLBACKEND=Agg python src/autoencoder/CNN_any.py \
+          --model wave1d \
+          --data-selection loc1-6 \
+          --data-csv ./data/processed/datasets/data_1-6.csv \
+          --main-data-dir ./data/processed/datasets \
+          --epochs 30 \
+          --batch-size 32 \
+          --lr 1e-3 \
+          --visualization PCA
+         ```  
+       - DCASE2024のベースラインモデルに近いCNNエンコーダモデルの学習:  
+         ```bash
+         MPLBACKEND=Agg python src/autoencoder/CNN_any.py \
+         --model original \
+         --data-selection loc1-6 \
+         --data-csv ./data/processed/datasets/data_1-6.csv \
+         --main-data-dir ./data/processed/datasets \
+         --epochs 30 \
+         --batch-size 32 \
+         --lr 1e-3 \
+         --visualization PCA
+         ```  
+       - 昨年度研究で主に使用したCNNエンコーダモデルの学習:  
+         ```bash
+         MPLBACKEND=Agg python src/autoencoder/CNN_any.py \
+         --model small \
+         --data-selection loc1-6 \
+         --data-csv ./data/processed/datasets/data_1-6.csv \
+         --main-data-dir ./data/processed/datasets \
+         --epochs 30 \
+         --batch-size 32 \
+         --lr 1e-3 \
+         --visualization PCA
+         ```
+      - HPO探索実行
+        - 全モデルで探索（bashにまとめられている）
+          ```bash
+          bash ./exp0_hpo.sh
+          ```
 
    - **実験１（CircleLossによる深層距離学習）**  
-     車種と進行方向のラベルを用いてデータの分離を行います。  
-     ```bash
-     poetry run python -m encoder.metric_learning.MetricLearning
-     ```
+     車種と進行方向のラベルを用いてデータの分離を行います。
+      - 学習実行例
+        - 昨年度研究で使用したCNNモデルの学習:  
+          ```bash
+          MPLBACKEND=Agg python src/metric/LabelClustering.py \
+          --model small \
+          --data-selection loc1-6 \
+          --data-csv ./data/processed/datasets/data_1-6.csv \
+          --main-data-dir ./data/processed/datasets \
+          --epochs 100 \
+          --batch-size 64 \
+          --visualization t-SNE
+          ```  
+      - HPO探索実行
+        - 全モデルで探索（bashにまとめられている）
+          ```bash
+          bash ./exp1_hpo.sh
+          ```
 
-   - **実験２（LogRatioLossによる連続情報を保持した潜在空間の取得）**  
-     速度ラベルに基づく連続情報を反映させる深層距離学習を行います。実験１からの継続学習を行う場合は、`outputs/`フォルダに保存された`.pth`ファイルを`encoder/`直下に配置し、プログラム内の該当部分のコメントを外してください。  
-     ```bash
-     poetry run python -m encoder.metric_learning.LogRatioLoss
-     ```
+   - **実験２（ArcfaceLossによる深層距離学習）**
+     車種と進行方向のラベルを用いてデータの分離を行います。
+      - 学習実行例
+        - 昨年度研究で使用したCNNモデルの学習:  
+          ```bash
+          MPLBACKEND=Agg python src/metric/LabelClustering_arcface.py \
+          --model small \
+          --data-selection loc1-6 \
+          --data-csv ./data/processed/datasets/data_1-6.csv \
+          --main-data-dir ./data/processed/datasets \
+          --epochs 100 \
+          --batch-size 64 \
+          --visualization t-SNE
+          ```  
+      - HPO探索実行
+        - 全モデルで探索（bashにまとめられている）
+          ```bash
+          bash ./exp2_hpo.sh
+          ```
 
-   - **実験３（速度予測モデルの学習）**  
+   - **実験３（LogRatioLossによる連続情報を保持した潜在空間の取得）**  
+     速度ラベルに基づく連続情報を反映させる深層距離学習を行います。
+      - HPO探索実行
+        - 新規にLogRatioLossで全モデルを探索（bashにまとめられている）
+          ```bash
+          bash ./exp3_hpo.sh
+          ```
+        - 継続事前学習のパラメータを全モデルで探索（bashにまとめられている）
+          ```bash
+          bash ./exp3c_hpo.sh
+          ```
+
+   - **実験４（速度予測モデルの学習）**  
      事前学習済みの潜在空間を利用して、速度予測モデルの学習を行います。実験２からの継続学習を行う場合は、`outputs/`フォルダに保存された`.pth`ファイルを`encoder/`直下に配置し、プログラム内の該当部分のコメントを外してください。  
      ```bash
      poetry run python -m encoder.speedPrediction
@@ -191,7 +269,7 @@
 
 ## ライセンス
 
-本リポジトリ内のプログラムの著作権はほぼすべて nomukoh に帰属します。ただし、外部からダウンロードしたファイルは、各公式ページに記載のライセンス条件に従ってご利用ください。
+本リポジトリ内のプログラムの著作権はlossを除きすべて tobe-son に帰属します。ただし、外部からダウンロードしたファイルは、各公式ページに記載のライセンス条件に従ってご利用ください。
 
 プログラムの実行に必要なコードのダウンロード先とライセンスを示します。
 - [circle_loss.py](https://github.com/TinyZeaMays/CircleLoss)（非公式実装・ライセンス未記載）

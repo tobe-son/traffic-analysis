@@ -1,0 +1,70 @@
+2026-02-10 14:36:24,930 - INFO - Applied optuna param batch_size=32
+2026-02-10 14:36:24,930 - INFO - Applied optuna param hop_length=512
+2026-02-10 14:36:24,930 - INFO - Applied optuna param n_fft=2048
+2026-02-10 14:36:24,930 - INFO - Applied optuna param mel=ON
+2026-02-10 14:36:24,931 - INFO - Using encoder weights: outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-10 14:36:24,931 - INFO - Loss type: circle
+2026-02-10 14:36:24,975 - INFO - Using device: cuda
+2026-02-10 14:36:25,504 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-10 14:36:34,309 - INFO - Data ready. feature_min=-80.000000 feature_max=0.000004
+2026-02-10 14:36:34,644 - INFO - Embedding extraction done: (1200, 64)
+2026-02-10 14:36:34,644 - INFO - Embedding dimension: 64
+2026-02-10 14:36:34,645 - INFO - Applied L2 normalization to embeddings.
+2026-02-10 14:36:34,940 - INFO - メタデータを outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-sim/metadata.csv に保存しました。
+2026-02-10 14:36:34,940 - INFO - t-SNE による次元削減を開始します。
+2026-02-10 14:36:36,429 - INFO - UMAP による次元削減を開始します。
+2026-02-10 14:36:41,785 - INFO - Evaluation complete. Outputs in outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-sim
+2026-02-10 14:47:34,981 - INFO - Applied optuna param batch_size=32
+2026-02-10 14:47:34,981 - INFO - Applied optuna param hop_length=512
+2026-02-10 14:47:34,981 - INFO - Applied optuna param n_fft=2048
+2026-02-10 14:47:34,982 - INFO - Applied optuna param mel=ON
+2026-02-10 14:47:34,982 - INFO - Applied optuna param arcface_s=95.7415138479021
+2026-02-10 14:47:34,982 - INFO - Applied optuna param arcface_m=0.6804618900792363
+2026-02-10 14:47:34,982 - INFO - Using encoder weights: outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-10 14:47:34,982 - INFO - Loss type: circle
+2026-02-10 14:47:35,039 - INFO - Using device: cuda
+2026-02-10 14:47:35,518 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-10 14:47:44,253 - INFO - Data ready. feature_min=-80.000000 feature_max=0.000004
+2026-02-10 14:47:44,697 - INFO - Embedding extraction done: (1200, 64)
+2026-02-10 14:47:44,697 - INFO - Embedding dimension: 64
+2026-02-10 14:47:44,698 - INFO - Applied L2 normalization to embeddings.
+2026-02-10 14:47:45,001 - INFO - メタデータを outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-sim/metadata.csv に保存しました。
+2026-02-10 14:47:45,001 - INFO - t-SNE による次元削減を開始します。
+2026-02-10 14:47:46,490 - INFO - UMAP による次元削減を開始します。
+2026-02-10 14:47:51,730 - INFO - Evaluation complete. Outputs in outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-sim
+2026-02-10 14:51:35,129 - INFO - Applied optuna param batch_size=32
+2026-02-10 14:51:35,130 - INFO - Applied optuna param hop_length=512
+2026-02-10 14:51:35,130 - INFO - Applied optuna param n_fft=2048
+2026-02-10 14:51:35,130 - INFO - Applied optuna param mel=ON
+2026-02-10 14:51:35,130 - INFO - Applied optuna param arcface_s=95.7415138479021
+2026-02-10 14:51:35,130 - INFO - Applied optuna param arcface_m=0.6804618900792363
+2026-02-10 14:51:35,130 - INFO - Using encoder weights: outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-10 14:51:35,131 - INFO - Loss type: arcface
+2026-02-10 14:51:35,177 - INFO - Using device: cuda
+2026-02-10 14:51:35,578 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-10 14:51:44,070 - INFO - Data ready. feature_min=-80.000000 feature_max=0.000004
+2026-02-10 14:51:44,383 - INFO - Embedding extraction done: (1200, 64)
+2026-02-10 14:51:44,383 - INFO - Embedding dimension: 64
+2026-02-10 14:51:44,384 - INFO - Applied L2 normalization to embeddings.
+2026-02-10 14:51:44,785 - INFO - メタデータを outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-sim/metadata.csv に保存しました。
+2026-02-10 14:51:44,785 - INFO - t-SNE による次元削減を開始します。
+2026-02-10 14:51:46,271 - INFO - UMAP による次元削減を開始します。
+2026-02-10 14:51:51,447 - INFO - Evaluation complete. Outputs in outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-sim
+2026-02-10 15:05:56,783 - INFO - Applied optuna param batch_size=32
+2026-02-10 15:05:56,783 - INFO - Applied optuna param hop_length=512
+2026-02-10 15:05:56,783 - INFO - Applied optuna param n_fft=2048
+2026-02-10 15:05:56,784 - INFO - Applied optuna param mel=ON
+2026-02-10 15:05:56,784 - INFO - Applied optuna param arcface_s=95.7415138479021
+2026-02-10 15:05:56,784 - INFO - Applied optuna param arcface_m=0.6804618900792363
+2026-02-10 15:05:56,784 - INFO - Using encoder weights: outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-10 15:05:56,784 - INFO - Loss type: arcface
+2026-02-10 15:05:56,832 - INFO - Using device: cuda
+2026-02-10 15:05:57,235 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-10 15:06:37,636 - INFO - Data ready. feature_min=-80.000008 feature_max=0.000008
+2026-02-10 15:06:38,236 - INFO - Embedding extraction done: (8942, 64)
+2026-02-10 15:06:38,236 - INFO - Embedding dimension: 64
+2026-02-10 15:06:38,237 - INFO - Applied L2 normalization to embeddings.
+2026-02-10 15:06:46,852 - INFO - メタデータを outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-sim/metadata.csv に保存しました。
+2026-02-10 15:06:46,852 - INFO - t-SNE による次元削減を開始します。
+2026-02-10 15:06:57,859 - INFO - UMAP による次元削減を開始します。
+2026-02-10 15:07:13,631 - INFO - Evaluation complete. Outputs in outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-sim

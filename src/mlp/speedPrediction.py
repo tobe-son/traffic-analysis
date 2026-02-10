@@ -223,14 +223,15 @@ def plot_scatter(actual: np.ndarray, predicted: np.ndarray, path: str, title: st
     plt.plot([min_val, max_val], [min_val, max_val], "r--", label="Ideal")
     if actual.size > 2:
         try:
-            coeffs = np.polyfit(actual, predicted, deg=min(3, actual.size - 1))
+            degree = min(3, actual.size - 1)
+            coeffs = np.polyfit(actual, predicted, deg=degree)
             poly_fn = np.poly1d(coeffs)
             sort_idx = np.argsort(actual)
             sorted_actual = actual[sort_idx]
             fitted = poly_fn(sorted_actual)
             residuals = predicted - poly_fn(actual)
             sigma = float(np.std(residuals, ddof=1))
-            plt.plot(sorted_actual, fitted, "b-", linewidth=2, label="Poly fit")
+            plt.plot(sorted_actual, fitted, "b-", linewidth=2, label=f"Poly fit (deg={degree})")
             plt.fill_between(sorted_actual, fitted - sigma, fitted + sigma, color="blue", alpha=0.2, label="±1σ")
         except (np.linalg.LinAlgError, ValueError) as exc:
             logger.warning("Polynomial fit skipped: %s", exc)
@@ -243,6 +244,59 @@ def plot_scatter(actual: np.ndarray, predicted: np.ndarray, path: str, title: st
     plt.savefig(path)
     plt.close()
     logger.info("Saved scatter plot to %s", path)
+
+
+def compute_regression_metrics(actual: np.ndarray, predicted: np.ndarray) -> Dict[str, float]:
+    if actual.size == 0:
+        return {
+            "count": 0,
+            "mae": float("nan"),
+            "rmse": float("nan"),
+            "me": float("nan"),
+            "r2": float("nan"),
+            "mape": float("nan"),
+        }
+    errors = predicted - actual
+    mae = float(np.mean(np.abs(errors)))
+    rmse = float(np.sqrt(np.mean(errors**2)))
+    me = float(np.mean(errors))
+    denom = float(np.sum((actual - np.mean(actual)) ** 2))
+    r2 = float(1.0 - np.sum(errors**2) / denom) if denom > 0 else float("nan")
+    nonzero = actual != 0
+    if np.any(nonzero):
+        mape = float(np.mean(np.abs(errors[nonzero] / actual[nonzero])) * 100.0)
+    else:
+        mape = float("nan")
+    return {
+        "count": int(actual.size),
+        "mae": mae,
+        "rmse": rmse,
+        "me": me,
+        "r2": r2,
+        "mape": mape,
+    }
+
+
+def log_fit_equation(actual: np.ndarray, predicted: np.ndarray, logger, label: str) -> None:
+    if actual.size < 2:
+        logger.info("%s fit equation skipped: insufficient samples.", label)
+        return
+    degree = min(3, actual.size - 1)
+    try:
+        coeffs = np.polyfit(actual, predicted, deg=degree)
+    except (np.linalg.LinAlgError, ValueError) as exc:
+        logger.warning("%s fit equation skipped: %s", label, exc)
+        return
+    terms = []
+    for power, coeff in zip(range(degree, -1, -1), coeffs):
+        if power == 0:
+            terms.append(f"{coeff:.6g}")
+        elif power == 1:
+            terms.append(f"{coeff:.6g} * x")
+        else:
+            terms.append(f"{coeff:.6g} * x^{power}")
+    equation = " + ".join(terms)
+    logger.info("%s fit equation: y = %s", label, equation)
 
 
 def plot_loss_curve(train_losses: list[float], val_losses: list[float], output_dir: str, logger) -> None:
@@ -351,11 +405,33 @@ def main() -> None:
     train_loss, train_actual, train_pred = evaluate(model, train_loader, criterion, device)
     train_csv = os.path.join(logger.output_dir, f"train_predictions_{args.loss}.csv")
     save_predictions(train_csv, train_actual, train_pred, logger)
+    train_metrics = compute_regression_metrics(train_actual, train_pred)
+    logger.info(
+        "Train metrics -> count=%d MAE=%.4f RMSE=%.4f ME=%.4f R2=%.4f MAPE=%.2f%%",
+        train_metrics["count"],
+        train_metrics["mae"],
+        train_metrics["rmse"],
+        train_metrics["me"],
+        train_metrics["r2"],
+        train_metrics["mape"],
+    )
+    log_fit_equation(train_actual, train_pred, logger, "Train")
 
     logger.info("Evaluating best model on validation set…")
     val_loss, val_actual, val_pred = evaluate(model, val_loader, criterion, device)
     val_csv = os.path.join(logger.output_dir, f"val_predictions_{args.loss}.csv")
     save_predictions(val_csv, val_actual, val_pred, logger)
+    val_metrics = compute_regression_metrics(val_actual, val_pred)
+    logger.info(
+        "Val metrics -> count=%d MAE=%.4f RMSE=%.4f ME=%.4f R2=%.4f MAPE=%.2f%%",
+        val_metrics["count"],
+        val_metrics["mae"],
+        val_metrics["rmse"],
+        val_metrics["me"],
+        val_metrics["r2"],
+        val_metrics["mape"],
+    )
+    log_fit_equation(val_actual, val_pred, logger, "Val")
 
     logger.info("Final losses -> train=%.4f val=%.4f", train_loss, val_loss)
 

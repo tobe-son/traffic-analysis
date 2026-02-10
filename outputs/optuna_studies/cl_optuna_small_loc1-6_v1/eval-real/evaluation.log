@@ -1,0 +1,23 @@
+2026-02-10 14:15:22,550 - INFO - Applied optuna param batch_size=8
+2026-02-10 14:15:22,550 - INFO - Applied optuna param hop_length=320
+2026-02-10 14:15:22,550 - INFO - Applied optuna param n_fft=512
+2026-02-10 14:15:22,550 - INFO - Applied optuna param mel=OFF
+2026-02-10 14:15:22,550 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-10 14:15:22,550 - INFO - Loss type: circle
+2026-02-10 14:15:22,625 - INFO - Using device: cuda
+2026-02-10 14:17:05,153 - INFO - Applied optuna param batch_size=8
+2026-02-10 14:17:05,153 - INFO - Applied optuna param hop_length=320
+2026-02-10 14:17:05,153 - INFO - Applied optuna param n_fft=512
+2026-02-10 14:17:05,153 - INFO - Applied optuna param mel=OFF
+2026-02-10 14:17:05,154 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-10 14:17:05,154 - INFO - Loss type: circle
+2026-02-10 14:17:05,199 - INFO - Using device: cuda
+2026-02-10 14:17:05,680 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-10 14:17:33,850 - INFO - Data ready. feature_min=-100.000000 feature_max=46.114029
+2026-02-10 14:17:35,848 - INFO - Embedding extraction done: (8942, 64)
+2026-02-10 14:17:35,848 - INFO - Embedding dimension: 64
+2026-02-10 14:17:35,850 - INFO - Applied L2 normalization to embeddings.
+2026-02-10 14:17:43,434 - INFO - メタデータを outputs/optuna_studies/cl_optuna_small_loc1-6_v1/eval-real/metadata.csv に保存しました。
+2026-02-10 14:17:43,434 - INFO - t-SNE による次元削減を開始します。
+2026-02-10 14:17:53,984 - INFO - UMAP による次元削減を開始します。
+2026-02-10 14:18:11,003 - INFO - Evaluation complete. Outputs in outputs/optuna_studies/cl_optuna_small_loc1-6_v1/eval-real
