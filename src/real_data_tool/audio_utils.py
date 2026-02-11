@@ -76,7 +76,42 @@ def fix_length_center(x: np.ndarray, target_len: int) -> np.ndarray:
     return padded
 
 
-def load_and_normalize(path: Path, spec: AudioSpec) -> np.ndarray:
+def fix_length_peak(x: np.ndarray, target_len: int) -> np.ndarray:
+    """Center the window on the peak amplitude, padding or trimming as needed."""
+    if target_len <= 0:
+        return np.zeros((0,), dtype=np.float32)
+    n = x.shape[0]
+    if n == 0:
+        return np.zeros((target_len,), dtype=np.float32)
+
+    peak_idx = int(np.argmax(np.abs(x)))
+    center_idx = target_len // 2
+    start = peak_idx - center_idx
+
+    if n >= target_len:
+        start = max(0, min(start, n - target_len))
+        return x[start:start + target_len].astype(np.float32)
+
+    start = max(0, min(start, target_len - n))
+    pad_left = start
+    pad_right = target_len - n - pad_left
+
+    x = x.astype(np.float32)
+    pad_mode = "reflect" if n > 1 else "edge"
+    padded = np.pad(x, (pad_left, pad_right), mode=pad_mode).astype(np.float32)
+
+    if pad_left > 0:
+        fade_in = np.linspace(0.0, 1.0, num=pad_left, endpoint=False, dtype=np.float32)
+        padded[:pad_left] *= fade_in
+
+    if pad_right > 0:
+        fade_out = np.linspace(1.0, 0.0, num=pad_right, endpoint=False, dtype=np.float32)
+        padded[-pad_right:] *= fade_out
+
+    return padded
+
+
+def load_and_normalize(path: Path, spec: AudioSpec, center_mode: str = "center") -> np.ndarray:
     data, sr = read_audio(path)
     if spec.mono:
         x = to_mono(data)
@@ -84,7 +119,10 @@ def load_and_normalize(path: Path, spec: AudioSpec) -> np.ndarray:
         x = data[:, 0]
     x = resample_linear(x, orig_sr=sr, target_sr=spec.sampling_rate)
     target_len = int(round(spec.duration_sec * spec.sampling_rate))
-    x = fix_length_center(x, target_len)
+    if center_mode == "peak":
+        x = fix_length_peak(x, target_len)
+    else:
+        x = fix_length_center(x, target_len)
     peak = float(np.max(np.abs(x))) if x.size else 0.0
     if peak > 0:
         x = x / peak

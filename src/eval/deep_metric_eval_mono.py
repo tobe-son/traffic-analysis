@@ -1,11 +1,11 @@
-"""Evaluation script for deep metric-learning encoders (CircleLoss / ArcFace).
+"""Evaluation script for mono data: vehicle-type-only metrics.
 
 Outputs:
 - Silhouette Coefficient / Davies-Bouldin Index
 - Recall@k
 - NMI (Normalized Mutual Information) via KMeans
 - k-NN classification accuracy
-- t-SNE and UMAP visualizations (categorized by location, vehicle+direction, no_speed, speed_only)
+- t-SNE and UMAP visualizations (categorized by location, vehicle, no_speed, speed_only)
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ from metric import LabelClustering_arcface as arcface_backend
 from metric.utils import set_global_seed
 from loss.arcface import ArcFaceLayer
 
-logger = logging.getLogger("deep_metric_eval")
+logger = logging.getLogger("deep_metric_eval_mono")
 
 BACKENDS = {
     "circle": circle_backend,
@@ -52,7 +52,9 @@ BACKENDS = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Deep metric-learning evaluation (CircleLoss / ArcFace encoders)")
+    parser = argparse.ArgumentParser(
+        description="Deep metric-learning evaluation for mono data (vehicle-type-only)"
+    )
 
     parser.add_argument("--loss-type", choices=BACKENDS.keys(), default="circle")
     parser.add_argument("--model", choices=circle_backend.MODEL_REGISTRY.keys(), default="vgg11")
@@ -86,8 +88,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--arcface-m", type=float, default=0.5, help="ArcFace margin m")
 
     parser.add_argument("--recall-k", default="1,2,4,8,16", help="Comma-separated recall@k list")
-    parser.add_argument("--knn-k", default="1,3,5,7", help="Comma-separated k-NN k list")
-    parser.add_argument("--head-topk", default="1,2,3,4", help="Comma-separated ArcFace head top-k list")
+    parser.add_argument("--knn-k", default="1,2,3", help="Comma-separated k-NN k list")
+    parser.add_argument("--head-topk", default="1,2,3", help="Comma-separated ArcFace head top-k list")
     parser.add_argument(
         "--speed-bins",
         default="0,40,60,80,100",
@@ -101,7 +103,7 @@ def setup_logger(output_dir: Path) -> logging.Logger:
     output_dir.mkdir(parents=True, exist_ok=True)
     log_path = output_dir / "evaluation.log"
 
-    logger = logging.getLogger("deep_metric_eval")
+    logger = logging.getLogger("deep_metric_eval_mono")
     if logger.hasHandlers():
         logger.handlers.clear()
 
@@ -232,6 +234,63 @@ def compute_knn_accuracy(
     return results
 
 
+def compute_knn_topk_accuracy(
+    embeddings: np.ndarray,
+    labels: np.ndarray,
+    k_list: Iterable[int],
+    seed: int,
+) -> Dict[str, float]:
+    n_samples = embeddings.shape[0]
+    if n_samples < 2:
+        return {f"knn_top{k}": float("nan") for k in k_list}
+
+    n_classes = len(np.unique(labels))
+    if n_classes < 1:
+        return {f"knn_top{k}": float("nan") for k in k_list}
+
+    stratify = labels if n_classes > 1 else None
+    try:
+        x_train, x_test, y_train, y_test = train_test_split(
+            embeddings,
+            labels,
+            test_size=0.3,
+            random_state=seed,
+            stratify=stratify,
+        )
+    except ValueError:
+        x_train, x_test, y_train, y_test = train_test_split(
+            embeddings,
+            labels,
+            test_size=0.3,
+            random_state=seed,
+            stratify=None,
+        )
+
+    max_k = min(max(k_list), n_classes, len(y_train))
+    if max_k < 1:
+        return {f"knn_top{k}": float("nan") for k in k_list}
+
+    clf = KNeighborsClassifier(n_neighbors=max_k, metric="cosine", algorithm="brute")
+    clf.fit(x_train, y_train)
+
+    proba = clf.predict_proba(x_test)
+    classes = clf.classes_
+    order = np.argsort(-proba, axis=1)
+    y_test = np.asarray(y_test)
+
+    results: Dict[str, float] = {}
+    for k in k_list:
+        k_eff = min(k, order.shape[1])
+        if k_eff < 1:
+            results[f"knn_top{k}"] = float("nan")
+            continue
+        topk_classes = classes[order[:, :k_eff]]
+        hits = (topk_classes == y_test[:, None]).any(axis=1)
+        results[f"knn_top{k}"] = float(np.mean(hits))
+
+    return results
+
+
 def compute_nmi(embeddings: np.ndarray, labels: np.ndarray, seed: int) -> float:
     unique_labels = np.unique(labels)
     if unique_labels.size < 2:
@@ -277,6 +336,7 @@ def evaluate_label_set(
     metrics["nmi"] = compute_nmi(embeddings, labels, seed)
     metrics["recall"] = compute_recall_at_k(embeddings, labels, k_list_recall)
     metrics["knn"] = compute_knn_accuracy(embeddings, labels, k_list_knn, seed)
+    metrics["knn_topk"] = compute_knn_topk_accuracy(embeddings, labels, k_list_knn, seed)
 
     return metrics
 
@@ -298,10 +358,13 @@ def write_metrics(output_dir: Path, results: Dict[str, Dict[str, object]]) -> No
         }
         recall = metrics.get("recall", {}) or {}
         knn = metrics.get("knn", {}) or {}
+        knn_topk = metrics.get("knn_topk", {}) or {}
         head = metrics.get("head", {}) or {}
         for key, value in recall.items():
             base[key] = value
         for key, value in knn.items():
+            base[key] = value
+        for key, value in knn_topk.items():
             base[key] = value
         for key, value in head.items():
             base[key] = value
@@ -363,12 +426,58 @@ def compute_arcface_head_metrics(
     return results
 
 
+def compute_arcface_head_metrics_mono(
+    embeddings: np.ndarray,
+    labels: np.ndarray,
+    metric_fc: ArcFaceLayer,
+    device: torch.device,
+    topk_list: Iterable[int],
+    num_vehicle_classes: int,
+    batch_size: int = 512,
+) -> Dict[str, float]:
+    metric_fc.eval()
+    total = labels.shape[0]
+    if total == 0 or num_vehicle_classes < 1:
+        return {"head_acc": float("nan")}
+
+    topk_list = sorted(set(int(k) for k in topk_list))
+    max_k = min(max(topk_list), num_vehicle_classes)
+
+    correct_top1 = 0
+    correct_topk = {k: 0 for k in topk_list}
+    group_size = int(metric_fc.weight.shape[0] // num_vehicle_classes)
+
+    with torch.no_grad():
+        for start in range(0, total, batch_size):
+            end = min(start + batch_size, total)
+            batch_emb = torch.from_numpy(embeddings[start:end]).to(device)
+            batch_labels = torch.from_numpy(labels[start:end]).to(device)
+
+            logits_full = F.linear(F.normalize(batch_emb), F.normalize(metric_fc.weight))
+            logits_grouped = logits_full.view(-1, num_vehicle_classes, group_size)
+            logits = torch.logsumexp(logits_grouped, dim=2)
+
+            preds = logits.argmax(dim=1)
+            correct_top1 += (preds == batch_labels).sum().item()
+
+            topk = torch.topk(logits, k=max_k, dim=1).indices
+            for k in topk_list:
+                hits = (topk[:, :k] == batch_labels.unsqueeze(1)).any(dim=1)
+                correct_topk[k] += hits.sum().item()
+
+    results: Dict[str, float] = {
+        "head_acc": float(correct_top1 / total),
+    }
+    for k in topk_list:
+        results[f"head_top{k}"] = float(correct_topk[k] / total)
+    return results
+
+
 def visualize_embeddings(
     output_dir: Path,
     latent_matrix: np.ndarray,
     speeds: np.ndarray,
     vehicle_types: np.ndarray,
-    directions: np.ndarray,
     locations: np.ndarray,
     seed: int,
     dimension: int,
@@ -379,7 +488,6 @@ def visualize_embeddings(
     base_embeddings = latent_matrix
     base_speeds = speeds
     base_vehicle_types = vehicle_types
-    base_directions = directions
     base_locations = locations
 
     if max_points and max_points > 0 and latent_matrix.shape[0] > max_points:
@@ -389,13 +497,12 @@ def visualize_embeddings(
         base_embeddings = latent_matrix[keep]
         base_speeds = speeds[keep]
         base_vehicle_types = vehicle_types[keep]
-        base_directions = directions[keep]
         base_locations = locations[keep]
 
     for method in ("t-SNE", "UMAP"):
         reduced = reduce_latent_space(
             base_embeddings,
-            (base_vehicle_types * 2) + base_directions,
+            base_vehicle_types,
             method,
             dimension,
             seed,
@@ -408,7 +515,7 @@ def visualize_embeddings(
                 latent_data=reduced,
                 speeds=np.asarray(base_speeds),
                 vehicle_types=np.asarray(base_vehicle_types),
-                directions=np.asarray(base_directions),
+                directions=None,
                 locations=np.asarray(base_locations),
                 output_dir=str(output_dir),
                 visualization=method,
@@ -495,12 +602,11 @@ def main() -> None:
     latent_matrix = normalize(latent_matrix, norm="l2")
     logger.info("Applied L2 normalization to embeddings.")
 
-    classes = (vehicle_types * 2) + directions
     speed_bins = parse_float_list(args.speed_bins)
     speed_labels = bin_speeds(speeds, speed_bins)
 
     label_sets = {
-        "vehicle_direction": classes,
+        "vehicle": vehicle_types,
         "location": locations,
         "speed_bin": speed_labels,
     }
@@ -528,12 +634,21 @@ def main() -> None:
             seed=args.seed,
         )
 
-    if args.loss_type == "arcface" and args.metric_fc_weights:
+    if args.metric_fc_weights:
         metric_fc_path = Path(args.metric_fc_weights).expanduser()
         if not metric_fc_path.exists():
             raise FileNotFoundError(f"ArcFace metric_fc weights not found: {metric_fc_path}")
 
-        num_classes = int(np.max(classes)) + 1 if classes.size else 0
+        num_classes = int(np.max(vehicle_types)) + 1 if vehicle_types.size else 0
+        try:
+            state = torch.load(metric_fc_path, map_location=device, weights_only=True)
+        except TypeError:
+            state = torch.load(metric_fc_path, map_location=device)
+
+        weight_shape = state.get("weight", None)
+        if isinstance(weight_shape, torch.Tensor):
+            num_classes = int(weight_shape.shape[0])
+
         if num_classes > 0:
             metric_fc = ArcFaceLayer(
                 in_features=int(latent_matrix.shape[1]),
@@ -541,34 +656,57 @@ def main() -> None:
                 s=args.arcface_s,
                 m=args.arcface_m,
             ).to(device)
-            try:
-                state = torch.load(metric_fc_path, map_location=device, weights_only=True)
-            except TypeError:
-                state = torch.load(metric_fc_path, map_location=device)
             metric_fc.load_state_dict(state)
             metric_fc.eval()
 
-            mask = _valid_label_mask(classes)
-            head_metrics = compute_arcface_head_metrics(
-                embeddings=latent_matrix[mask],
-                labels=classes[mask].astype(np.int64),
-                metric_fc=metric_fc,
-                device=device,
-                topk_list=head_topk,
-                batch_size=max(128, args.batch_size),
-            )
-
-            if "vehicle_direction" in results:
-                results["vehicle_direction"].setdefault("head", {}).update(head_metrics)
+            mask = _valid_label_mask(vehicle_types)
+            num_vehicle_classes = int(np.max(vehicle_types[mask])) + 1 if mask.any() else 0
+            if num_vehicle_classes > 0 and num_classes != num_vehicle_classes:
+                if num_classes % num_vehicle_classes == 0:
+                    logger.info(
+                        "Aggregating ArcFace head logits from %d classes into %d vehicle classes",
+                        num_classes,
+                        num_vehicle_classes,
+                    )
+                    head_metrics = compute_arcface_head_metrics_mono(
+                        embeddings=latent_matrix[mask],
+                        labels=vehicle_types[mask].astype(np.int64),
+                        metric_fc=metric_fc,
+                        device=device,
+                        topk_list=head_topk,
+                        num_vehicle_classes=num_vehicle_classes,
+                        batch_size=max(128, args.batch_size),
+                    )
+                else:
+                    logger.warning(
+                        "ArcFace head evaluation skipped: num_classes=%d is not divisible by vehicle classes=%d",
+                        num_classes,
+                        num_vehicle_classes,
+                    )
+                    head_metrics = {"head_acc": float("nan")}
             else:
-                results["vehicle_direction"] = {
-                    "name": "vehicle_direction",
+                head_metrics = compute_arcface_head_metrics(
+                    embeddings=latent_matrix[mask],
+                    labels=vehicle_types[mask].astype(np.int64),
+                    metric_fc=metric_fc,
+                    device=device,
+                    topk_list=head_topk,
+                    batch_size=max(128, args.batch_size),
+                )
+
+            if "vehicle" in results:
+                results["vehicle"].setdefault("head", {}).update(head_metrics)
+            else:
+                results["vehicle"] = {
+                    "name": "vehicle",
                     "n_samples": int(mask.sum()),
                     "n_classes": int(num_classes),
                     "head": head_metrics,
                 }
         else:
             logger.warning("ArcFace head evaluation skipped: no valid classes")
+    elif args.loss_type == "arcface":
+        logger.warning("ArcFace head evaluation skipped: --metric-fc-weights not provided")
 
     write_metrics(output_dir, results)
 
@@ -583,7 +721,6 @@ def main() -> None:
         latent_matrix=latent_matrix,
         speeds=speeds,
         vehicle_types=vehicle_types,
-        directions=directions,
         locations=locations,
         seed=args.seed,
         dimension=args.dimension,
@@ -592,7 +729,7 @@ def main() -> None:
         reduce_latent_space=reduce_latent_space,
     )
 
-    logger.info("Evaluation complete. Outputs in %s", output_dir)
+    logger.info("Mono evaluation complete. Outputs in %s", output_dir)
 
 
 if __name__ == "__main__":

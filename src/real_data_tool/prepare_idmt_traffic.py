@@ -59,7 +59,7 @@ def parse_filename(name: str) -> Optional[dict]:
         except ValueError:
             speed = None
 
-    direction = {"L": "right", "R": "left"}.get(direction_code)
+    direction = {"L": "left", "R": "right"}.get(direction_code)
     vehicle = VEHICLE_CODE_TO_NAME.get(vehicle_code)
 
     if direction is None or vehicle is None:

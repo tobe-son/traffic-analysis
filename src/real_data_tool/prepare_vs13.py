@@ -68,7 +68,8 @@ def convert_dataset(
         dst = out_dir / dst_rel
 
         if not dry_run:
-            audio = load_and_normalize(wav_path, spec)
+            # Match synthetic data: center the 6-second window on the peak amplitude.
+            audio = load_and_normalize(wav_path, spec, center_mode="peak")
             write_wav(dst, audio, spec.sampling_rate)
 
         records.append(
@@ -100,7 +101,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--out-dir", default="./data/processed/real/vs13")
     p.add_argument("--csv", default="./data/processed/real/vs13/vs13.csv")
     p.add_argument("--sampling-rate", type=int, default=16000)
-    p.add_argument("--duration", type=float, default=6.0, help="Target duration in seconds (crop/pad center)")
+    p.add_argument(
+        "--duration",
+        type=float,
+        default=6.0,
+        help="Target duration in seconds (crop/pad on peak to match synthetic data)",
+    )
     p.add_argument("--direction", choices=["left", "right"], default="right")
     p.add_argument("--limit", type=int, default=0, help="Process only the first N pairs (0 = no limit)")
     p.add_argument("--dry-run", action="store_true")
