@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Optional
 import pandas as pd
 import librosa
 import librosa.display
@@ -15,10 +16,18 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
-def output_settings():
-    # 実行時間を使って出力ディレクトリを作成
-    current_time = datetime.now().strftime('%Y-%m-%d/%H-%M-%S')
-    output_directory = os.path.join('./outputs', current_time)
+def output_settings(output_directory: Optional[str] = None):
+    """Configure logging and output directory.
+
+    When ``output_directory`` is provided, it will be used as-is; otherwise a
+    timestamped folder under ``./outputs`` is created.
+    """
+    if output_directory is None:
+        current_time = datetime.now().strftime('%Y-%m-%d/%H-%M-%S')
+        output_directory = os.path.join('./outputs', current_time)
+    else:
+        output_directory = os.path.abspath(output_directory)
+
     os.makedirs(output_directory, exist_ok=True)
 
     # ログの設定

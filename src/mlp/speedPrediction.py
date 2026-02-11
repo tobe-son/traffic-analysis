@@ -94,6 +94,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--test-split", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--visualize", action="store_true", help="Plot prediction scatter for train/val sets")
+    parser.add_argument("--output-dir", default=None, help="Directory to save logs, checkpoints, and plots")
     return parser.parse_args()
 
 
@@ -327,7 +328,7 @@ def main() -> None:
     representation = resolve_representation(args.model, args.representation)
     hop_length = resolve_hop_length(args.model, args.hop_length)
 
-    logger = output_settings()
+    logger = output_settings(args.output_dir)
     logger.info("Using pretrained encoder weights: %s", args.encoder_weights)
 
     hyperparams = {
@@ -350,6 +351,7 @@ def main() -> None:
         "DROPOUT": args.dropout,
         "TEST_SPLIT": args.test_split,
         "SEED": args.seed,
+        "OUTPUT_DIR": logger.output_dir,
     }
     logger.info("Hyperparameters:")
     for key, value in hyperparams.items():

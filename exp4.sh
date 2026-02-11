@@ -32,7 +32,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_optuna_small_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model vgg11 \
@@ -40,7 +41,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_optuna_vgg11_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet18 \
@@ -48,7 +50,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_optuna_resnet18_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet50 \
@@ -56,7 +59,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_optuna_resnet50_loc1-6_v1
 
 # 事前学習（Arcface Loss）からのMLP回帰学習
 
@@ -66,7 +70,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model vgg11 \
@@ -74,7 +79,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_arcface_optuna_vgg11_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet18 \
@@ -82,7 +88,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_arcface_optuna_resnet18_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet50 \
@@ -90,7 +97,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_arcface_optuna_resnet50_loc1-6_v1
 
 # 事前学習（LogRatio Loss）からのMLP回帰学習
 
@@ -100,7 +108,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/log_optuna_small_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model vgg11 \
@@ -108,7 +117,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/log_optuna_vgg11_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet18 \
@@ -116,7 +126,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet50 \
@@ -124,7 +135,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/log_optuna_resnet50_loc1-6_v1
 
 # 事前学習（Circle - LogRatio）からのMLP回帰学習
 
@@ -134,7 +146,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cont_optuna_small_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model vgg11 \
@@ -142,7 +155,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cont_optuna_vgg11_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet18 \
@@ -150,7 +164,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cont_optuna_resnet18_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet50 \
@@ -158,7 +173,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cont_optuna_resnet50_loc1-6_v1
 
 # 事前学習（Arcface - LogRatio）からのMLP回帰学習
 
@@ -168,7 +184,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cont2_optuna_small_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model vgg11 \
@@ -176,7 +193,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cont2_optuna_vgg11_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet18 \
@@ -184,7 +202,8 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cont2_optuna_resnet18_loc1-6_v1
 
 MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model resnet50 \
@@ -192,4 +211,6 @@ MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --epochs 100 \
   --batch-size 32 \
   --loss mse \
-  --visualize
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cont2_optuna_resnet50_loc1-6_v1
+  
