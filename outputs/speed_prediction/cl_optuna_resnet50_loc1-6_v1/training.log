@@ -1,0 +1,26 @@
+2026-02-11 18:45:59,102 - INFO - Using pretrained encoder weights: ./outputs/optuna_studies/cl_optuna_resnet50_loc1-6_v1/best_encoder_resnet50.pth
+2026-02-11 18:45:59,103 - INFO - Hyperparameters:
+2026-02-11 18:45:59,103 - INFO - MODEL: resnet50
+2026-02-11 18:45:59,103 - INFO - DATA_SELECTION: loc1-6
+2026-02-11 18:45:59,103 - INFO - DATA_CSV_PATH: ./data/processed/datasets/data_1-6.csv
+2026-02-11 18:45:59,103 - INFO - MAIN_DATA_DIR: ./data/processed/datasets
+2026-02-11 18:45:59,103 - INFO - REPRESENTATION: spectrogram
+2026-02-11 18:45:59,103 - INFO - MEL: OFF
+2026-02-11 18:45:59,103 - INFO - SAMPLING_RATE: 16000
+2026-02-11 18:45:59,103 - INFO - N_FFT: 1024
+2026-02-11 18:45:59,103 - INFO - HOP_LENGTH: 160
+2026-02-11 18:45:59,103 - INFO - BATCH_SIZE: 32
+2026-02-11 18:45:59,103 - INFO - EPOCHS: 100
+2026-02-11 18:45:59,103 - INFO - LR: 0.001
+2026-02-11 18:45:59,103 - INFO - ENCODER_LR: 0.001
+2026-02-11 18:45:59,103 - INFO - FREEZE_ENCODER: False
+2026-02-11 18:45:59,103 - INFO - LOSS: mse
+2026-02-11 18:45:59,103 - INFO - HIDDEN_DIM: 128
+2026-02-11 18:45:59,103 - INFO - DROPOUT: 0.0
+2026-02-11 18:45:59,103 - INFO - TEST_SPLIT: 0.2
+2026-02-11 18:45:59,103 - INFO - SEED: 42
+2026-02-11 18:45:59,103 - INFO - OUTPUT_DIR: /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_resnet50_loc1-6_v1
+2026-02-11 18:45:59,156 - INFO - Using device: cuda
+2026-02-11 18:45:59,635 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-11 18:46:08,836 - INFO - Speed stats -> count=1200 min=23.00 max=109.00 mean=51.56 std=20.82
+2026-02-11 18:46:08,836 - INFO - feature range after normalisation: min=-77.740166 max=38.731632
