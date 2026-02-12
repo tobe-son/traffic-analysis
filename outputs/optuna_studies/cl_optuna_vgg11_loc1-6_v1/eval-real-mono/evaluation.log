@@ -1,0 +1,16 @@
+2026-02-12 13:14:37,850 - INFO - Applied optuna param batch_size=8
+2026-02-12 13:14:37,850 - INFO - Applied optuna param hop_length=256
+2026-02-12 13:14:37,850 - INFO - Applied optuna param n_fft=1024
+2026-02-12 13:14:37,850 - INFO - Applied optuna param mel=ON
+2026-02-12 13:14:37,850 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_vgg11_loc1-6_v1/best_encoder_vgg11.pth
+2026-02-12 13:14:37,850 - INFO - Loss type: circle
+2026-02-12 13:14:37,996 - INFO - Using device: cuda
+2026-02-12 13:14:38,369 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-12 13:15:06,666 - INFO - Data ready. feature_min=-80.000008 feature_max=0.000004
+2026-02-12 13:15:13,403 - INFO - Embedding extraction done: (8826, 32)
+2026-02-12 13:15:13,403 - INFO - Embedding dimension: 32
+2026-02-12 13:15:13,404 - INFO - Applied L2 normalization to embeddings.
+2026-02-12 13:15:18,629 - INFO - メタデータを outputs/optuna_studies/cl_optuna_vgg11_loc1-6_v1/eval-real-mono/metadata.csv に保存しました。
+2026-02-12 13:15:18,629 - INFO - t-SNE による次元削減を開始します。
+2026-02-12 13:15:29,095 - INFO - UMAP による次元削減を開始します。
+2026-02-12 13:15:43,226 - INFO - Mono evaluation complete. Outputs in outputs/optuna_studies/cl_optuna_vgg11_loc1-6_v1/eval-real-mono

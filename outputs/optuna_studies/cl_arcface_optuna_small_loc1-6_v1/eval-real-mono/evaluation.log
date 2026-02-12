@@ -1,0 +1,19 @@
+2026-02-12 13:20:29,507 - INFO - Applied optuna param batch_size=32
+2026-02-12 13:20:29,507 - INFO - Applied optuna param hop_length=512
+2026-02-12 13:20:29,507 - INFO - Applied optuna param n_fft=2048
+2026-02-12 13:20:29,507 - INFO - Applied optuna param mel=ON
+2026-02-12 13:20:29,507 - INFO - Applied optuna param arcface_s=95.7415138479021
+2026-02-12 13:20:29,507 - INFO - Applied optuna param arcface_m=0.6804618900792363
+2026-02-12 13:20:29,507 - INFO - Using encoder weights: outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-12 13:20:29,507 - INFO - Loss type: arcface
+2026-02-12 13:20:29,629 - INFO - Using device: cuda
+2026-02-12 13:20:30,001 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-12 13:21:01,106 - INFO - Data ready. feature_min=-80.000008 feature_max=0.000008
+2026-02-12 13:21:01,620 - INFO - Embedding extraction done: (8826, 64)
+2026-02-12 13:21:01,620 - INFO - Embedding dimension: 64
+2026-02-12 13:21:01,621 - INFO - Applied L2 normalization to embeddings.
+2026-02-12 13:21:07,712 - INFO - Aggregating ArcFace head logits from 4 classes into 2 vehicle classes
+2026-02-12 13:21:07,778 - INFO - メタデータを outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-real-mono/metadata.csv に保存しました。
+2026-02-12 13:21:07,778 - INFO - t-SNE による次元削減を開始します。
+2026-02-12 13:21:18,688 - INFO - UMAP による次元削減を開始します。
+2026-02-12 13:21:32,824 - INFO - Mono evaluation complete. Outputs in outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v1/eval-real-mono

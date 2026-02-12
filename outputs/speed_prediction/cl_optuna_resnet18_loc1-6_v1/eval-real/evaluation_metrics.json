@@ -1,0 +1,43 @@
+{
+  "settings": {
+    "MODEL": "resnet18",
+    "MODEL_WEIGHTS": "/home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_resnet18_loc1-6_v1/best_speed_regressor_mse.pth",
+    "DATA_SELECTION": "loc1-6",
+    "DATA_CSV_PATH": "./data/processed/real/vs13/vs13.csv",
+    "MAIN_DATA_DIR": "./data/processed/real/vs13",
+    "REPRESENTATION": "spectrogram",
+    "MEL": "OFF",
+    "SAMPLING_RATE": 16000,
+    "N_FFT": 1024,
+    "HOP_LENGTH": 512,
+    "BATCH_SIZE": 32,
+    "LOSS": "mse",
+    "HIDDEN_DIM": 128,
+    "DROPOUT": 0.0,
+    "TEST_SPLIT": 0.2,
+    "SEED": 42,
+    "OUTPUT_DIR": "/home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_resnet18_loc1-6_v1/eval-real"
+  },
+  "train": {
+    "loss": 671.784878540039,
+    "metrics": {
+      "count": 320,
+      "mae": 20.703112828731538,
+      "rmse": 25.918813219247433,
+      "me": -12.566513180732727,
+      "r2": -0.5672701430865756,
+      "mape": 30.167119496778298
+    }
+  },
+  "val": {
+    "loss": 781.502294921875,
+    "metrics": {
+      "count": 80,
+      "mae": 22.313257241249083,
+      "rmse": 27.95536266050654,
+      "me": -18.16595928668976,
+      "r2": -0.95005065745195,
+      "mape": 28.676455834977936
+    }
+  }
+}
