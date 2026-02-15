@@ -1,0 +1,182 @@
+2026-02-13 00:40:30,448 - INFO - Using pretrained encoder weights: ./outputs/optuna_studies/cont_optuna_small_loc1-6_v2/best_encoder_small.pth
+2026-02-13 00:40:30,448 - INFO - Hyperparameters:
+2026-02-13 00:40:30,448 - INFO - MODEL: small
+2026-02-13 00:40:30,448 - INFO - DATA_SELECTION: loc1-6
+2026-02-13 00:40:30,448 - INFO - DATA_CSV_PATH: ./data/processed/datasets/data_1-6.csv
+2026-02-13 00:40:30,448 - INFO - MAIN_DATA_DIR: ./data/processed/datasets
+2026-02-13 00:40:30,448 - INFO - REPRESENTATION: spectrogram
+2026-02-13 00:40:30,448 - INFO - MEL: OFF
+2026-02-13 00:40:30,448 - INFO - SAMPLING_RATE: 16000
+2026-02-13 00:40:30,448 - INFO - N_FFT: 1024
+2026-02-13 00:40:30,448 - INFO - HOP_LENGTH: 512
+2026-02-13 00:40:30,448 - INFO - BATCH_SIZE: 32
+2026-02-13 00:40:30,448 - INFO - EPOCHS: 100
+2026-02-13 00:40:30,448 - INFO - LR: 0.001
+2026-02-13 00:40:30,448 - INFO - ENCODER_LR: 0.001
+2026-02-13 00:40:30,448 - INFO - FREEZE_ENCODER: False
+2026-02-13 00:40:30,448 - INFO - LOSS: mse
+2026-02-13 00:40:30,448 - INFO - HIDDEN_DIM: 128
+2026-02-13 00:40:30,448 - INFO - DROPOUT: 0.0
+2026-02-13 00:40:30,448 - INFO - TEST_SPLIT: 0.2
+2026-02-13 00:40:30,448 - INFO - SEED: 42
+2026-02-13 00:40:30,448 - INFO - OUTPUT_DIR: /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cont_optuna_small_loc1-6_v2
+2026-02-13 00:40:30,494 - INFO - Using device: cuda
+2026-02-13 00:40:30,959 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-13 00:40:36,358 - INFO - Speed stats -> count=1200 min=23.00 max=109.00 mean=51.56 std=20.82
+2026-02-13 00:40:36,358 - INFO - feature range after normalisation: min=-77.856697 max=38.314186
+2026-02-13 00:40:37,379 - INFO - Epoch 1/100 -> train_loss=786.6781 val_loss=522.8684
+2026-02-13 00:40:37,380 - INFO - Updated best model (epoch 1, val_loss=522.8684)
+2026-02-13 00:40:37,635 - INFO - Epoch 2/100 -> train_loss=496.3602 val_loss=373.1979
+2026-02-13 00:40:37,636 - INFO - Updated best model (epoch 2, val_loss=373.1979)
+2026-02-13 00:40:37,888 - INFO - Epoch 3/100 -> train_loss=360.6022 val_loss=260.8041
+2026-02-13 00:40:37,889 - INFO - Updated best model (epoch 3, val_loss=260.8041)
+2026-02-13 00:40:38,148 - INFO - Epoch 4/100 -> train_loss=282.0423 val_loss=213.0366
+2026-02-13 00:40:38,148 - INFO - Updated best model (epoch 4, val_loss=213.0366)
+2026-02-13 00:40:38,403 - INFO - Epoch 5/100 -> train_loss=244.5661 val_loss=187.1907
+2026-02-13 00:40:38,404 - INFO - Updated best model (epoch 5, val_loss=187.1907)
+2026-02-13 00:40:38,655 - INFO - Epoch 6/100 -> train_loss=215.9081 val_loss=172.1414
+2026-02-13 00:40:38,656 - INFO - Updated best model (epoch 6, val_loss=172.1414)
+2026-02-13 00:40:38,910 - INFO - Epoch 7/100 -> train_loss=182.4360 val_loss=142.9359
+2026-02-13 00:40:38,911 - INFO - Updated best model (epoch 7, val_loss=142.9359)
+2026-02-13 00:40:39,161 - INFO - Epoch 8/100 -> train_loss=154.5593 val_loss=127.9056
+2026-02-13 00:40:39,162 - INFO - Updated best model (epoch 8, val_loss=127.9056)
+2026-02-13 00:40:39,415 - INFO - Epoch 9/100 -> train_loss=132.3229 val_loss=107.0832
+2026-02-13 00:40:39,416 - INFO - Updated best model (epoch 9, val_loss=107.0832)
+2026-02-13 00:40:39,667 - INFO - Epoch 10/100 -> train_loss=109.0349 val_loss=90.0354
+2026-02-13 00:40:39,668 - INFO - Updated best model (epoch 10, val_loss=90.0354)
+2026-02-13 00:40:39,919 - INFO - Epoch 11/100 -> train_loss=93.1820 val_loss=80.0296
+2026-02-13 00:40:39,920 - INFO - Updated best model (epoch 11, val_loss=80.0296)
+2026-02-13 00:40:40,169 - INFO - Epoch 12/100 -> train_loss=80.6866 val_loss=72.6146
+2026-02-13 00:40:40,170 - INFO - Updated best model (epoch 12, val_loss=72.6146)
+2026-02-13 00:40:40,421 - INFO - Epoch 13/100 -> train_loss=73.0456 val_loss=75.1507
+2026-02-13 00:40:40,676 - INFO - Epoch 14/100 -> train_loss=70.6885 val_loss=69.9228
+2026-02-13 00:40:40,677 - INFO - Updated best model (epoch 14, val_loss=69.9228)
+2026-02-13 00:40:40,934 - INFO - Epoch 15/100 -> train_loss=64.3094 val_loss=58.7650
+2026-02-13 00:40:40,935 - INFO - Updated best model (epoch 15, val_loss=58.7650)
+2026-02-13 00:40:41,187 - INFO - Epoch 16/100 -> train_loss=63.8386 val_loss=64.2956
+2026-02-13 00:40:41,442 - INFO - Epoch 17/100 -> train_loss=60.2135 val_loss=55.1575
+2026-02-13 00:40:41,443 - INFO - Updated best model (epoch 17, val_loss=55.1575)
+2026-02-13 00:40:41,694 - INFO - Epoch 18/100 -> train_loss=55.6301 val_loss=51.9697
+2026-02-13 00:40:41,695 - INFO - Updated best model (epoch 18, val_loss=51.9697)
+2026-02-13 00:40:41,949 - INFO - Epoch 19/100 -> train_loss=55.2903 val_loss=51.3422
+2026-02-13 00:40:41,950 - INFO - Updated best model (epoch 19, val_loss=51.3422)
+2026-02-13 00:40:42,203 - INFO - Epoch 20/100 -> train_loss=51.8122 val_loss=54.3924
+2026-02-13 00:40:42,460 - INFO - Epoch 21/100 -> train_loss=51.6094 val_loss=51.8685
+2026-02-13 00:40:42,712 - INFO - Epoch 22/100 -> train_loss=48.7944 val_loss=49.0737
+2026-02-13 00:40:42,713 - INFO - Updated best model (epoch 22, val_loss=49.0737)
+2026-02-13 00:40:42,965 - INFO - Epoch 23/100 -> train_loss=46.9519 val_loss=49.4541
+2026-02-13 00:40:43,216 - INFO - Epoch 24/100 -> train_loss=47.8849 val_loss=47.5755
+2026-02-13 00:40:43,217 - INFO - Updated best model (epoch 24, val_loss=47.5755)
+2026-02-13 00:40:43,471 - INFO - Epoch 25/100 -> train_loss=51.3710 val_loss=45.3849
+2026-02-13 00:40:43,472 - INFO - Updated best model (epoch 25, val_loss=45.3849)
+2026-02-13 00:40:43,724 - INFO - Epoch 26/100 -> train_loss=45.3236 val_loss=46.5866
+2026-02-13 00:40:43,979 - INFO - Epoch 27/100 -> train_loss=41.8007 val_loss=43.2765
+2026-02-13 00:40:43,980 - INFO - Updated best model (epoch 27, val_loss=43.2765)
+2026-02-13 00:40:44,244 - INFO - Epoch 28/100 -> train_loss=44.4324 val_loss=42.2184
+2026-02-13 00:40:44,245 - INFO - Updated best model (epoch 28, val_loss=42.2184)
+2026-02-13 00:40:44,495 - INFO - Epoch 29/100 -> train_loss=41.7348 val_loss=43.5530
+2026-02-13 00:40:44,749 - INFO - Epoch 30/100 -> train_loss=39.8379 val_loss=40.5549
+2026-02-13 00:40:44,750 - INFO - Updated best model (epoch 30, val_loss=40.5549)
+2026-02-13 00:40:45,005 - INFO - Epoch 31/100 -> train_loss=42.7331 val_loss=55.6280
+2026-02-13 00:40:45,258 - INFO - Epoch 32/100 -> train_loss=42.0050 val_loss=40.0815
+2026-02-13 00:40:45,259 - INFO - Updated best model (epoch 32, val_loss=40.0815)
+2026-02-13 00:40:45,511 - INFO - Epoch 33/100 -> train_loss=39.9593 val_loss=47.8341
+2026-02-13 00:40:45,768 - INFO - Epoch 34/100 -> train_loss=38.6223 val_loss=38.6093
+2026-02-13 00:40:45,769 - INFO - Updated best model (epoch 34, val_loss=38.6093)
+2026-02-13 00:40:46,025 - INFO - Epoch 35/100 -> train_loss=38.3968 val_loss=37.9845
+2026-02-13 00:40:46,026 - INFO - Updated best model (epoch 35, val_loss=37.9845)
+2026-02-13 00:40:46,276 - INFO - Epoch 36/100 -> train_loss=36.4285 val_loss=39.4791
+2026-02-13 00:40:46,531 - INFO - Epoch 37/100 -> train_loss=34.5193 val_loss=40.1392
+2026-02-13 00:40:46,782 - INFO - Epoch 38/100 -> train_loss=34.4558 val_loss=46.3021
+2026-02-13 00:40:47,033 - INFO - Epoch 39/100 -> train_loss=41.8083 val_loss=39.2291
+2026-02-13 00:40:47,290 - INFO - Epoch 40/100 -> train_loss=34.9985 val_loss=44.7291
+2026-02-13 00:40:47,542 - INFO - Epoch 41/100 -> train_loss=34.5641 val_loss=36.3538
+2026-02-13 00:40:47,543 - INFO - Updated best model (epoch 41, val_loss=36.3538)
+2026-02-13 00:40:47,800 - INFO - Epoch 42/100 -> train_loss=32.7545 val_loss=35.8757
+2026-02-13 00:40:47,801 - INFO - Updated best model (epoch 42, val_loss=35.8757)
+2026-02-13 00:40:48,057 - INFO - Epoch 43/100 -> train_loss=33.0382 val_loss=36.9164
+2026-02-13 00:40:48,311 - INFO - Epoch 44/100 -> train_loss=31.9393 val_loss=35.7992
+2026-02-13 00:40:48,312 - INFO - Updated best model (epoch 44, val_loss=35.7992)
+2026-02-13 00:40:48,565 - INFO - Epoch 45/100 -> train_loss=31.9889 val_loss=38.6517
+2026-02-13 00:40:48,817 - INFO - Epoch 46/100 -> train_loss=30.9692 val_loss=36.5306
+2026-02-13 00:40:49,076 - INFO - Epoch 47/100 -> train_loss=32.6136 val_loss=34.0809
+2026-02-13 00:40:49,077 - INFO - Updated best model (epoch 47, val_loss=34.0809)
+2026-02-13 00:40:49,330 - INFO - Epoch 48/100 -> train_loss=31.2375 val_loss=33.8624
+2026-02-13 00:40:49,331 - INFO - Updated best model (epoch 48, val_loss=33.8624)
+2026-02-13 00:40:49,585 - INFO - Epoch 49/100 -> train_loss=30.1184 val_loss=34.6513
+2026-02-13 00:40:49,839 - INFO - Epoch 50/100 -> train_loss=29.7439 val_loss=34.0600
+2026-02-13 00:40:50,090 - INFO - Epoch 51/100 -> train_loss=29.8065 val_loss=32.7128
+2026-02-13 00:40:50,091 - INFO - Updated best model (epoch 51, val_loss=32.7128)
+2026-02-13 00:40:50,343 - INFO - Epoch 52/100 -> train_loss=30.3549 val_loss=34.7504
+2026-02-13 00:40:50,594 - INFO - Epoch 53/100 -> train_loss=29.1421 val_loss=38.5473
+2026-02-13 00:40:50,845 - INFO - Epoch 54/100 -> train_loss=29.0050 val_loss=31.9393
+2026-02-13 00:40:50,846 - INFO - Updated best model (epoch 54, val_loss=31.9393)
+2026-02-13 00:40:51,098 - INFO - Epoch 55/100 -> train_loss=29.0713 val_loss=37.8987
+2026-02-13 00:40:51,356 - INFO - Epoch 56/100 -> train_loss=36.3484 val_loss=36.7136
+2026-02-13 00:40:51,613 - INFO - Epoch 57/100 -> train_loss=32.3506 val_loss=32.1768
+2026-02-13 00:40:51,866 - INFO - Epoch 58/100 -> train_loss=31.2197 val_loss=32.8630
+2026-02-13 00:40:52,120 - INFO - Epoch 59/100 -> train_loss=28.0637 val_loss=35.9267
+2026-02-13 00:40:52,375 - INFO - Epoch 60/100 -> train_loss=32.2410 val_loss=34.2437
+2026-02-13 00:40:52,628 - INFO - Epoch 61/100 -> train_loss=30.4815 val_loss=30.4917
+2026-02-13 00:40:52,629 - INFO - Updated best model (epoch 61, val_loss=30.4917)
+2026-02-13 00:40:52,881 - INFO - Epoch 62/100 -> train_loss=27.1919 val_loss=30.0786
+2026-02-13 00:40:52,882 - INFO - Updated best model (epoch 62, val_loss=30.0786)
+2026-02-13 00:40:53,134 - INFO - Epoch 63/100 -> train_loss=26.9702 val_loss=30.9917
+2026-02-13 00:40:53,388 - INFO - Epoch 64/100 -> train_loss=26.6383 val_loss=30.1292
+2026-02-13 00:40:53,640 - INFO - Epoch 65/100 -> train_loss=26.3902 val_loss=30.8581
+2026-02-13 00:40:53,892 - INFO - Epoch 66/100 -> train_loss=27.7043 val_loss=33.2688
+2026-02-13 00:40:54,147 - INFO - Epoch 67/100 -> train_loss=25.8292 val_loss=32.6057
+2026-02-13 00:40:54,399 - INFO - Epoch 68/100 -> train_loss=27.0946 val_loss=29.8396
+2026-02-13 00:40:54,400 - INFO - Updated best model (epoch 68, val_loss=29.8396)
+2026-02-13 00:40:54,658 - INFO - Epoch 69/100 -> train_loss=26.2839 val_loss=30.2304
+2026-02-13 00:40:54,911 - INFO - Epoch 70/100 -> train_loss=26.2447 val_loss=29.1577
+2026-02-13 00:40:54,912 - INFO - Updated best model (epoch 70, val_loss=29.1577)
+2026-02-13 00:40:55,165 - INFO - Epoch 71/100 -> train_loss=25.4749 val_loss=29.3620
+2026-02-13 00:40:55,418 - INFO - Epoch 72/100 -> train_loss=26.0376 val_loss=31.9013
+2026-02-13 00:40:55,677 - INFO - Epoch 73/100 -> train_loss=26.3641 val_loss=33.5310
+2026-02-13 00:40:55,932 - INFO - Epoch 74/100 -> train_loss=24.3243 val_loss=28.2335
+2026-02-13 00:40:55,933 - INFO - Updated best model (epoch 74, val_loss=28.2335)
+2026-02-13 00:40:56,184 - INFO - Epoch 75/100 -> train_loss=26.2051 val_loss=32.4508
+2026-02-13 00:40:56,441 - INFO - Epoch 76/100 -> train_loss=26.3870 val_loss=28.2169
+2026-02-13 00:40:56,442 - INFO - Updated best model (epoch 76, val_loss=28.2169)
+2026-02-13 00:40:56,693 - INFO - Epoch 77/100 -> train_loss=26.8220 val_loss=35.7346
+2026-02-13 00:40:56,944 - INFO - Epoch 78/100 -> train_loss=26.2809 val_loss=30.7278
+2026-02-13 00:40:57,203 - INFO - Epoch 79/100 -> train_loss=24.8793 val_loss=27.6859
+2026-02-13 00:40:57,204 - INFO - Updated best model (epoch 79, val_loss=27.6859)
+2026-02-13 00:40:57,459 - INFO - Epoch 80/100 -> train_loss=24.1514 val_loss=32.0823
+2026-02-13 00:40:57,714 - INFO - Epoch 81/100 -> train_loss=26.2187 val_loss=28.2777
+2026-02-13 00:40:57,967 - INFO - Epoch 82/100 -> train_loss=27.4254 val_loss=28.2808
+2026-02-13 00:40:58,221 - INFO - Epoch 83/100 -> train_loss=26.4125 val_loss=31.6789
+2026-02-13 00:40:58,480 - INFO - Epoch 84/100 -> train_loss=24.3833 val_loss=28.5880
+2026-02-13 00:40:58,736 - INFO - Epoch 85/100 -> train_loss=23.3875 val_loss=28.1532
+2026-02-13 00:40:58,990 - INFO - Epoch 86/100 -> train_loss=23.0534 val_loss=27.7256
+2026-02-13 00:40:59,245 - INFO - Epoch 87/100 -> train_loss=23.5176 val_loss=27.6383
+2026-02-13 00:40:59,246 - INFO - Updated best model (epoch 87, val_loss=27.6383)
+2026-02-13 00:40:59,498 - INFO - Epoch 88/100 -> train_loss=23.2909 val_loss=33.5598
+2026-02-13 00:40:59,749 - INFO - Epoch 89/100 -> train_loss=25.5003 val_loss=37.1319
+2026-02-13 00:41:00,002 - INFO - Epoch 90/100 -> train_loss=23.5991 val_loss=26.4148
+2026-02-13 00:41:00,003 - INFO - Updated best model (epoch 90, val_loss=26.4148)
+2026-02-13 00:41:00,261 - INFO - Epoch 91/100 -> train_loss=22.5077 val_loss=27.1197
+2026-02-13 00:41:00,514 - INFO - Epoch 92/100 -> train_loss=22.5101 val_loss=26.5878
+2026-02-13 00:41:00,766 - INFO - Epoch 93/100 -> train_loss=22.4908 val_loss=29.7239
+2026-02-13 00:41:01,018 - INFO - Epoch 94/100 -> train_loss=24.6059 val_loss=29.1306
+2026-02-13 00:41:01,275 - INFO - Epoch 95/100 -> train_loss=24.4603 val_loss=31.5598
+2026-02-13 00:41:01,530 - INFO - Epoch 96/100 -> train_loss=24.5667 val_loss=26.8671
+2026-02-13 00:41:01,785 - INFO - Epoch 97/100 -> train_loss=25.1971 val_loss=28.2217
+2026-02-13 00:41:02,044 - INFO - Epoch 98/100 -> train_loss=22.3714 val_loss=29.2259
+2026-02-13 00:41:02,296 - INFO - Epoch 99/100 -> train_loss=24.4478 val_loss=26.4302
+2026-02-13 00:41:02,550 - INFO - Epoch 100/100 -> train_loss=21.8461 val_loss=26.8346
+2026-02-13 00:41:02,551 - INFO - Saved last model to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cont_optuna_small_loc1-6_v2/last_speed_regressor_mse.pth
+2026-02-13 00:41:02,631 - INFO - Saved loss curve to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cont_optuna_small_loc1-6_v2/loss_curve.png
+2026-02-13 00:41:02,632 - INFO - Loaded best checkpoint from epoch 90
+2026-02-13 00:41:02,632 - INFO - Evaluating best model on training set…
+2026-02-13 00:41:02,760 - INFO - Saved predictions to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cont_optuna_small_loc1-6_v2/train_predictions_mse.csv
+2026-02-13 00:41:02,760 - INFO - Train metrics -> count=960 MAE=3.4368 RMSE=4.5689 ME=-0.2008 R2=0.9529 MAPE=7.08%
+2026-02-13 00:41:02,761 - INFO - Train fit equation: y = -1.38745e-05 * x^3 + 0.00327216 * x^2 + 0.703966 * x + 7.89988
+2026-02-13 00:41:02,761 - INFO - Evaluating best model on validation set…
+2026-02-13 00:41:02,793 - INFO - Saved predictions to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cont_optuna_small_loc1-6_v2/val_predictions_mse.csv
+2026-02-13 00:41:02,794 - INFO - Val metrics -> count=240 MAE=3.8056 RMSE=5.1395 ME=-0.3838 R2=0.9328 MAPE=7.60%
+2026-02-13 00:41:02,794 - INFO - Val fit equation: y = 1.80333e-06 * x^3 + -0.000321319 * x^2 + 0.945878 * x + 2.94564
+2026-02-13 00:41:02,794 - INFO - Final losses -> train=20.8749 val=26.4148
+2026-02-13 00:41:02,874 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cont_optuna_small_loc1-6_v2/train_scatter_mse.png
+2026-02-13 00:41:02,943 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cont_optuna_small_loc1-6_v2/val_scatter_mse.png

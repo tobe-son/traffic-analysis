@@ -1,0 +1,36 @@
+2026-02-14 19:29:19,741 - INFO - Using model checkpoint: ./outputs/speed_prediction/cl_optuna_small_loc1-6_v2/best_speed_regressor_mse.pth
+2026-02-14 19:29:19,741 - INFO - Applied optuna param hop_length=320
+2026-02-14 19:29:19,741 - INFO - Applied optuna param n_fft=512
+2026-02-14 19:29:19,741 - INFO - Applied optuna param mel=OFF
+2026-02-14 19:29:19,741 - INFO - Evaluation settings:
+2026-02-14 19:29:19,741 - INFO - MODEL: small
+2026-02-14 19:29:19,741 - INFO - MODEL_WEIGHTS: /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_small_loc1-6_v2/best_speed_regressor_mse.pth
+2026-02-14 19:29:19,741 - INFO - DATA_SELECTION: loc1-6
+2026-02-14 19:29:19,741 - INFO - DATA_CSV_PATH: ./data/processed/real/vs13/vs13.csv
+2026-02-14 19:29:19,741 - INFO - MAIN_DATA_DIR: ./data/processed/real/vs13
+2026-02-14 19:29:19,741 - INFO - REPRESENTATION: spectrogram
+2026-02-14 19:29:19,741 - INFO - MEL: OFF
+2026-02-14 19:29:19,741 - INFO - SAMPLING_RATE: 16000
+2026-02-14 19:29:19,741 - INFO - N_FFT: 512
+2026-02-14 19:29:19,741 - INFO - HOP_LENGTH: 320
+2026-02-14 19:29:19,741 - INFO - BATCH_SIZE: 32
+2026-02-14 19:29:19,741 - INFO - LOSS: mse
+2026-02-14 19:29:19,741 - INFO - HIDDEN_DIM: 128
+2026-02-14 19:29:19,741 - INFO - DROPOUT: 0.0
+2026-02-14 19:29:19,741 - INFO - TEST_SPLIT: 0.2
+2026-02-14 19:29:19,741 - INFO - SEED: 42
+2026-02-14 19:29:19,741 - INFO - OUTPUT_DIR: /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_small_loc1-6_v2/eval-real
+2026-02-14 19:29:19,788 - INFO - Using device: cuda
+2026-02-14 19:29:20,251 - INFO - sample_spectrogram: speed 101.0, loc1, car, right
+2026-02-14 19:29:21,527 - INFO - Speed stats -> count=400 min=30.00 max=105.00 mean=67.02 std=20.70
+2026-02-14 19:29:21,527 - INFO - feature range after normalisation: min=-50.958115 max=41.006905
+2026-02-14 19:29:21,636 - INFO - Evaluating model on training set…
+2026-02-14 19:29:21,774 - INFO - Saved predictions to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_small_loc1-6_v2/eval-real/train_predictions_mse.csv
+2026-02-14 19:29:21,774 - INFO - Train metrics -> count=320 MAE=32.5430 RMSE=38.5876 ME=12.7085 R2=-2.4738 MAPE=59.15%
+2026-02-14 19:29:21,774 - INFO - Evaluating model on validation set…
+2026-02-14 19:29:21,787 - INFO - Saved predictions to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_small_loc1-6_v2/eval-real/val_predictions_mse.csv
+2026-02-14 19:29:21,787 - INFO - Val metrics -> count=80 MAE=31.5775 RMSE=38.4983 ME=10.7429 R2=-2.6983 MAPE=53.51%
+2026-02-14 19:29:21,787 - INFO - Saved metrics to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_small_loc1-6_v2/eval-real/evaluation_metrics.json
+2026-02-14 19:29:21,788 - INFO - Final losses -> train=1489.0013 val=1482.1166
+2026-02-14 19:29:21,880 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_small_loc1-6_v2/eval-real/train_scatter_mse.png
+2026-02-14 19:29:21,958 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_optuna_small_loc1-6_v2/eval-real/val_scatter_mse.png

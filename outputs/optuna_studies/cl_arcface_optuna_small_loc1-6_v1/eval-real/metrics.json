@@ -21,10 +21,20 @@
     },
     "head": {
       "head_acc": 0.414570586902334,
+      "head_acc_cos": 0.414570586902334,
       "head_top1": 0.414570586902334,
+      "head_top1_cos": 0.414570586902334,
       "head_top2": 0.8672105143893043,
+      "head_top2_cos": 0.8672105143893043,
       "head_top3": 0.9391570360299116,
-      "head_top4": 1.0
+      "head_top3_cos": 0.9391570360299116,
+      "head_top4": 1.0,
+      "head_top4_cos": 1.0,
+      "head_acc_arcface": 1.0,
+      "head_top1_arcface": 1.0,
+      "head_top2_arcface": 1.0,
+      "head_top3_arcface": 1.0,
+      "head_top4_arcface": 1.0
     }
   },
   "location": {

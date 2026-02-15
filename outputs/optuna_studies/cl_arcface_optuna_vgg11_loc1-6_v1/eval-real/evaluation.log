@@ -16,3 +16,21 @@
 2026-02-12 13:08:57,353 - INFO - t-SNE による次元削減を開始します。
 2026-02-12 13:09:08,164 - INFO - UMAP による次元削減を開始します。
 2026-02-12 13:09:22,464 - INFO - Evaluation complete. Outputs in outputs/optuna_studies/cl_arcface_optuna_vgg11_loc1-6_v1/eval-real
+2026-02-14 19:32:21,569 - INFO - Applied optuna param batch_size=8
+2026-02-14 19:32:21,569 - INFO - Applied optuna param hop_length=512
+2026-02-14 19:32:21,570 - INFO - Applied optuna param n_fft=512
+2026-02-14 19:32:21,570 - INFO - Applied optuna param mel=ON
+2026-02-14 19:32:21,570 - INFO - Applied optuna param arcface_s=97.1971011162941
+2026-02-14 19:32:21,570 - INFO - Applied optuna param arcface_m=0.6254704327928239
+2026-02-14 19:32:21,570 - INFO - Using encoder weights: outputs/optuna_studies/cl_arcface_optuna_vgg11_loc1-6_v1/best_encoder_vgg11.pth
+2026-02-14 19:32:21,570 - INFO - Loss type: arcface
+2026-02-14 19:32:21,711 - INFO - Using device: cuda
+2026-02-14 19:32:22,076 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-14 19:32:38,082 - INFO - Data ready. feature_min=-80.000000 feature_max=0.000004
+2026-02-14 19:32:41,737 - INFO - Embedding extraction done: (8826, 32)
+2026-02-14 19:32:41,737 - INFO - Embedding dimension: 32
+2026-02-14 19:32:41,738 - INFO - Applied L2 normalization to embeddings.
+2026-02-14 19:32:47,426 - INFO - メタデータを outputs/optuna_studies/cl_arcface_optuna_vgg11_loc1-6_v1/eval-real/metadata.csv に保存しました。
+2026-02-14 19:32:47,427 - INFO - t-SNE による次元削減を開始します。
+2026-02-14 19:32:58,397 - INFO - UMAP による次元削減を開始します。
+2026-02-14 19:33:12,569 - INFO - Evaluation complete. Outputs in outputs/optuna_studies/cl_arcface_optuna_vgg11_loc1-6_v1/eval-real

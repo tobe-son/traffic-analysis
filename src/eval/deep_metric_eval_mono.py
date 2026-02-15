@@ -384,7 +384,37 @@ def save_embeddings(output_dir: Path, embeddings: np.ndarray) -> None:
     pd.DataFrame(embeddings).to_csv(path, index=False)
 
 
-def compute_arcface_head_metrics(
+def _compute_topk_metrics_from_logits(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    topk_list: List[int],
+    correct_topk: Dict[int, int],
+    correct_top1: int,
+) -> int:
+    preds = logits.argmax(dim=1)
+    correct_top1 += (preds == labels).sum().item()
+
+    max_k = max(topk_list)
+    topk = torch.topk(logits, k=max_k, dim=1).indices
+    for k in topk_list:
+        hits = (topk[:, :k] == labels.unsqueeze(1)).any(dim=1)
+        correct_topk[k] += hits.sum().item()
+
+    return correct_top1
+
+
+def _nan_head_metrics(topk_list: Iterable[int], suffix: str) -> Dict[str, float]:
+    results: Dict[str, float] = {f"head_acc_{suffix}": float("nan")}
+    if suffix == "cos":
+        results["head_acc"] = float("nan")
+    for k in topk_list:
+        if suffix == "cos":
+            results[f"head_top{k}"] = float("nan")
+        results[f"head_top{k}_{suffix}"] = float("nan")
+    return results
+
+
+def compute_arcface_head_metrics_cos(
     embeddings: np.ndarray,
     labels: np.ndarray,
     metric_fc: ArcFaceLayer,
@@ -395,11 +425,9 @@ def compute_arcface_head_metrics(
     metric_fc.eval()
     total = labels.shape[0]
     if total == 0:
-        return {"head_acc": float("nan")}
+        return {"head_acc_cos": float("nan")}
 
     topk_list = sorted(set(int(k) for k in topk_list))
-    max_k = max(topk_list)
-
     correct_top1 = 0
     correct_topk = {k: 0 for k in topk_list}
 
@@ -409,24 +437,64 @@ def compute_arcface_head_metrics(
             batch_emb = torch.from_numpy(embeddings[start:end]).to(device)
             batch_labels = torch.from_numpy(labels[start:end]).to(device)
             logits = F.linear(F.normalize(batch_emb), F.normalize(metric_fc.weight))
-
-            preds = logits.argmax(dim=1)
-            correct_top1 += (preds == batch_labels).sum().item()
-
-            topk = torch.topk(logits, k=max_k, dim=1).indices
-            for k in topk_list:
-                hits = (topk[:, :k] == batch_labels.unsqueeze(1)).any(dim=1)
-                correct_topk[k] += hits.sum().item()
+            correct_top1 = _compute_topk_metrics_from_logits(
+                logits,
+                batch_labels,
+                topk_list,
+                correct_topk,
+                correct_top1,
+            )
 
     results: Dict[str, float] = {
         "head_acc": float(correct_top1 / total),
+        "head_acc_cos": float(correct_top1 / total),
     }
     for k in topk_list:
         results[f"head_top{k}"] = float(correct_topk[k] / total)
+        results[f"head_top{k}_cos"] = float(correct_topk[k] / total)
     return results
 
 
-def compute_arcface_head_metrics_mono(
+def compute_arcface_head_metrics_arcface(
+    embeddings: np.ndarray,
+    labels: np.ndarray,
+    metric_fc: ArcFaceLayer,
+    device: torch.device,
+    topk_list: Iterable[int],
+    batch_size: int = 512,
+) -> Dict[str, float]:
+    metric_fc.eval()
+    total = labels.shape[0]
+    if total == 0:
+        return {"head_acc_arcface": float("nan")}
+
+    topk_list = sorted(set(int(k) for k in topk_list))
+    correct_top1 = 0
+    correct_topk = {k: 0 for k in topk_list}
+
+    with torch.no_grad():
+        for start in range(0, total, batch_size):
+            end = min(start + batch_size, total)
+            batch_emb = torch.from_numpy(embeddings[start:end]).to(device)
+            batch_labels = torch.from_numpy(labels[start:end]).to(device)
+            logits = metric_fc(batch_emb, batch_labels)
+            correct_top1 = _compute_topk_metrics_from_logits(
+                logits,
+                batch_labels,
+                topk_list,
+                correct_topk,
+                correct_top1,
+            )
+
+    results: Dict[str, float] = {
+        "head_acc_arcface": float(correct_top1 / total),
+    }
+    for k in topk_list:
+        results[f"head_top{k}_arcface"] = float(correct_topk[k] / total)
+    return results
+
+
+def compute_arcface_head_metrics_mono_cos(
     embeddings: np.ndarray,
     labels: np.ndarray,
     metric_fc: ArcFaceLayer,
@@ -438,7 +506,7 @@ def compute_arcface_head_metrics_mono(
     metric_fc.eval()
     total = labels.shape[0]
     if total == 0 or num_vehicle_classes < 1:
-        return {"head_acc": float("nan")}
+        return {"head_acc_cos": float("nan")}
 
     topk_list = sorted(set(int(k) for k in topk_list))
     max_k = min(max(topk_list), num_vehicle_classes)
@@ -467,9 +535,11 @@ def compute_arcface_head_metrics_mono(
 
     results: Dict[str, float] = {
         "head_acc": float(correct_top1 / total),
+        "head_acc_cos": float(correct_top1 / total),
     }
     for k in topk_list:
         results[f"head_top{k}"] = float(correct_topk[k] / total)
+        results[f"head_top{k}_cos"] = float(correct_topk[k] / total)
     return results
 
 
@@ -668,7 +738,7 @@ def main() -> None:
                         num_classes,
                         num_vehicle_classes,
                     )
-                    head_metrics = compute_arcface_head_metrics_mono(
+                    head_metrics_cos = compute_arcface_head_metrics_mono_cos(
                         embeddings=latent_matrix[mask],
                         labels=vehicle_types[mask].astype(np.int64),
                         metric_fc=metric_fc,
@@ -677,15 +747,17 @@ def main() -> None:
                         num_vehicle_classes=num_vehicle_classes,
                         batch_size=max(128, args.batch_size),
                     )
+                    head_metrics_arcface = _nan_head_metrics(head_topk, "arcface")
                 else:
                     logger.warning(
                         "ArcFace head evaluation skipped: num_classes=%d is not divisible by vehicle classes=%d",
                         num_classes,
                         num_vehicle_classes,
                     )
-                    head_metrics = {"head_acc": float("nan")}
+                    head_metrics_cos = _nan_head_metrics(head_topk, "cos")
+                    head_metrics_arcface = _nan_head_metrics(head_topk, "arcface")
             else:
-                head_metrics = compute_arcface_head_metrics(
+                head_metrics_cos = compute_arcface_head_metrics_cos(
                     embeddings=latent_matrix[mask],
                     labels=vehicle_types[mask].astype(np.int64),
                     metric_fc=metric_fc,
@@ -693,6 +765,16 @@ def main() -> None:
                     topk_list=head_topk,
                     batch_size=max(128, args.batch_size),
                 )
+                head_metrics_arcface = compute_arcface_head_metrics_arcface(
+                    embeddings=latent_matrix[mask],
+                    labels=vehicle_types[mask].astype(np.int64),
+                    metric_fc=metric_fc,
+                    device=device,
+                    topk_list=head_topk,
+                    batch_size=max(128, args.batch_size),
+                )
+
+            head_metrics = {**head_metrics_cos, **head_metrics_arcface}
 
             if "vehicle" in results:
                 results["vehicle"].setdefault("head", {}).update(head_metrics)

@@ -25,9 +25,17 @@
     },
     "head": {
       "head_acc": 0.11862678450033991,
+      "head_acc_cos": 0.11862678450033991,
       "head_top1": 0.11862678450033991,
+      "head_top1_cos": 0.11862678450033991,
       "head_top2": 1.0,
-      "head_top3": 1.0
+      "head_top2_cos": 1.0,
+      "head_top3": 1.0,
+      "head_top3_cos": 1.0,
+      "head_acc_arcface": NaN,
+      "head_top1_arcface": NaN,
+      "head_top2_arcface": NaN,
+      "head_top3_arcface": NaN
     }
   },
   "location": {
