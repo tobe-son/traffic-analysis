@@ -34,3 +34,36 @@
 2026-02-12 15:44:53,700 - INFO - Final losses -> train=2326.0031 val=1662.8646
 2026-02-12 15:44:53,783 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/eval-real/train_scatter_mse.png
 2026-02-12 15:44:53,853 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/eval-real/val_scatter_mse.png
+2026-02-17 13:17:45,812 - INFO - Using model checkpoint: ./outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/best_speed_regressor_mse.pth
+2026-02-17 13:17:45,814 - INFO - Evaluation settings:
+2026-02-17 13:17:45,814 - INFO - MODEL: small
+2026-02-17 13:17:45,814 - INFO - MODEL_WEIGHTS: /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/best_speed_regressor_mse.pth
+2026-02-17 13:17:45,814 - INFO - DATA_SELECTION: loc1-6
+2026-02-17 13:17:45,814 - INFO - DATA_CSV_PATH: ./data/processed/real/vs13/vs13.csv
+2026-02-17 13:17:45,814 - INFO - MAIN_DATA_DIR: ./data/processed/real/vs13
+2026-02-17 13:17:45,814 - INFO - REPRESENTATION: spectrogram
+2026-02-17 13:17:45,814 - INFO - MEL: OFF
+2026-02-17 13:17:45,814 - INFO - SAMPLING_RATE: 16000
+2026-02-17 13:17:45,814 - INFO - N_FFT: 1024
+2026-02-17 13:17:45,814 - INFO - HOP_LENGTH: 512
+2026-02-17 13:17:45,814 - INFO - BATCH_SIZE: 32
+2026-02-17 13:17:45,814 - INFO - LOSS: mse
+2026-02-17 13:17:45,814 - INFO - HIDDEN_DIM: 128
+2026-02-17 13:17:45,814 - INFO - DROPOUT: 0.0
+2026-02-17 13:17:45,814 - INFO - TEST_SPLIT: 0.2
+2026-02-17 13:17:45,814 - INFO - SEED: 42
+2026-02-17 13:17:45,814 - INFO - OUTPUT_DIR: /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/eval-real
+2026-02-17 13:17:45,861 - INFO - Using device: cuda
+2026-02-17 13:17:46,343 - INFO - sample_spectrogram: speed 101.0, loc1, car, right
+2026-02-17 13:17:47,450 - INFO - Speed stats -> count=400 min=30.00 max=105.00 mean=67.02 std=20.70
+2026-02-17 13:17:47,450 - INFO - feature range after normalisation: min=-47.139862 max=43.057816
+2026-02-17 13:17:47,551 - INFO - Evaluating model on training set…
+2026-02-17 13:17:47,702 - INFO - Saved predictions to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/eval-real/train_predictions_mse.csv
+2026-02-17 13:17:47,702 - INFO - Train metrics -> count=320 MAE=16.7211 RMSE=20.0848 ME=-2.2638 R2=0.0589 MAPE=27.90%
+2026-02-17 13:17:47,702 - INFO - Evaluating model on validation set…
+2026-02-17 13:17:47,718 - INFO - Saved predictions to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/eval-real/val_predictions_mse.csv
+2026-02-17 13:17:47,718 - INFO - Val metrics -> count=80 MAE=16.9320 RMSE=20.2076 ME=-8.5240 R2=-0.0189 MAPE=24.13%
+2026-02-17 13:17:47,718 - INFO - Saved metrics to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/eval-real/evaluation_metrics.json
+2026-02-17 13:17:47,718 - INFO - Final losses -> train=403.3976 val=408.3456
+2026-02-17 13:17:47,807 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/eval-real/train_scatter_mse.png
+2026-02-17 13:17:47,890 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v1/eval-real/val_scatter_mse.png

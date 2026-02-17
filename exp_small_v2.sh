@@ -267,7 +267,6 @@ python src/eval/speed_prediction_eval.py \
   --loss mse \
   --batch-size 32 \
   --visualize \
-  --optuna-params ./outputs/optuna_studies/cl_optuna_small_loc1-6_v2/optuna_best.json \
   --data-csv ./data/processed/real/vs13/vs13.csv \
   --main-data-dir ./data/processed/real/vs13 \
   --output-dir ./outputs/speed_prediction/cl_optuna_small_loc1-6_v2/eval-real/
@@ -279,7 +278,6 @@ python src/eval/speed_prediction_eval.py \
   --loss mse \
   --batch-size 32 \
   --visualize \
-  --optuna-params ./outputs/optuna_studies/cl_arcface_optuna_small_loc1-6_v2/optuna_best.json \
   --data-csv ./data/processed/real/vs13/vs13.csv \
   --main-data-dir ./data/processed/real/vs13 \
   --output-dir ./outputs/speed_prediction/cl_arcface_optuna_small_loc1-6_v2/eval-real/
@@ -291,7 +289,6 @@ python src/eval/speed_prediction_eval.py \
   --loss mse \
   --batch-size 32 \
   --visualize \
-  --optuna-params ./outputs/optuna_studies/log_optuna_small_loc1-6_v2/optuna_best.json \
   --data-csv ./data/processed/real/vs13/vs13.csv \
   --main-data-dir ./data/processed/real/vs13 \
   --output-dir ./outputs/speed_prediction/log_optuna_small_loc1-6_v2/eval-real/
@@ -303,7 +300,6 @@ python src/eval/speed_prediction_eval.py \
   --loss mse \
   --batch-size 32 \
   --visualize \
-  --optuna-params ./outputs/optuna_studies/cont_optuna_small_loc1-6_v2/optuna_best.json \
   --data-csv ./data/processed/real/vs13/vs13.csv \
   --main-data-dir ./data/processed/real/vs13 \
   --output-dir ./outputs/speed_prediction/cont_optuna_small_loc1-6_v2/eval-real/
@@ -315,7 +311,6 @@ python src/eval/speed_prediction_eval.py \
   --loss mse \
   --batch-size 32 \
   --visualize \
-  --optuna-params ./outputs/optuna_studies/cont2_optuna_small_loc1-6_v2/optuna_best.json \
   --data-csv ./data/processed/real/vs13/vs13.csv \
   --main-data-dir ./data/processed/real/vs13 \
   --output-dir ./outputs/speed_prediction/cont2_optuna_small_loc1-6_v2/eval-real/

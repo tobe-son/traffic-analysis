@@ -34,3 +34,36 @@
 2026-02-12 15:45:16,551 - INFO - Final losses -> train=871.6487 val=1073.0356
 2026-02-12 15:45:16,642 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/eval-real/train_scatter_mse.png
 2026-02-12 15:45:16,724 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/eval-real/val_scatter_mse.png
+2026-02-17 13:18:18,354 - INFO - Using model checkpoint: ./outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/best_speed_regressor_mse.pth
+2026-02-17 13:18:18,354 - INFO - Evaluation settings:
+2026-02-17 13:18:18,354 - INFO - MODEL: resnet18
+2026-02-17 13:18:18,354 - INFO - MODEL_WEIGHTS: /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/best_speed_regressor_mse.pth
+2026-02-17 13:18:18,354 - INFO - DATA_SELECTION: loc1-6
+2026-02-17 13:18:18,354 - INFO - DATA_CSV_PATH: ./data/processed/real/vs13/vs13.csv
+2026-02-17 13:18:18,354 - INFO - MAIN_DATA_DIR: ./data/processed/real/vs13
+2026-02-17 13:18:18,354 - INFO - REPRESENTATION: spectrogram
+2026-02-17 13:18:18,354 - INFO - MEL: OFF
+2026-02-17 13:18:18,354 - INFO - SAMPLING_RATE: 16000
+2026-02-17 13:18:18,354 - INFO - N_FFT: 1024
+2026-02-17 13:18:18,354 - INFO - HOP_LENGTH: 160
+2026-02-17 13:18:18,354 - INFO - BATCH_SIZE: 32
+2026-02-17 13:18:18,354 - INFO - LOSS: mse
+2026-02-17 13:18:18,354 - INFO - HIDDEN_DIM: 128
+2026-02-17 13:18:18,354 - INFO - DROPOUT: 0.0
+2026-02-17 13:18:18,354 - INFO - TEST_SPLIT: 0.2
+2026-02-17 13:18:18,354 - INFO - SEED: 42
+2026-02-17 13:18:18,354 - INFO - OUTPUT_DIR: /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/eval-real
+2026-02-17 13:18:18,400 - INFO - Using device: cuda
+2026-02-17 13:18:18,876 - INFO - sample_spectrogram: speed 101.0, loc1, car, right
+2026-02-17 13:18:21,338 - INFO - Speed stats -> count=400 min=30.00 max=105.00 mean=67.02 std=20.70
+2026-02-17 13:18:21,338 - INFO - feature range after normalisation: min=-46.391670 max=45.149151
+2026-02-17 13:18:21,539 - INFO - Evaluating model on training set…
+2026-02-17 13:18:26,399 - INFO - Saved predictions to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/eval-real/train_predictions_mse.csv
+2026-02-17 13:18:26,399 - INFO - Train metrics -> count=320 MAE=22.3784 RMSE=28.0251 ME=-17.8233 R2=-0.8323 MAPE=30.62%
+2026-02-17 13:18:26,399 - INFO - Evaluating model on validation set…
+2026-02-17 13:18:27,597 - INFO - Saved predictions to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/eval-real/val_predictions_mse.csv
+2026-02-17 13:18:27,597 - INFO - Val metrics -> count=80 MAE=26.2982 RMSE=31.2469 ME=-23.2983 R2=-1.4363 MAPE=33.43%
+2026-02-17 13:18:27,597 - INFO - Saved metrics to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/eval-real/evaluation_metrics.json
+2026-02-17 13:18:27,597 - INFO - Final losses -> train=785.4064 val=976.3694
+2026-02-17 13:18:27,686 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/eval-real/train_scatter_mse.png
+2026-02-17 13:18:27,767 - INFO - Saved scatter plot to /home/jeong-lab/Documents/tobeson/traffic-analysis/outputs/speed_prediction/log_optuna_resnet18_loc1-6_v1/eval-real/val_scatter_mse.png
