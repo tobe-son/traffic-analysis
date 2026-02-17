@@ -1,0 +1,168 @@
+2026-02-17 14:51:06,189 - INFO - Applied optuna param batch_size=8
+2026-02-17 14:51:06,189 - INFO - Applied optuna param hop_length=320
+2026-02-17 14:51:06,189 - INFO - Applied optuna param n_fft=512
+2026-02-17 14:51:06,189 - INFO - Applied optuna param mel=OFF
+2026-02-17 14:51:06,189 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-17 14:51:06,190 - INFO - Loss type: circle
+2026-02-17 14:51:06,371 - INFO - Using device: cuda
+2026-02-17 14:51:06,846 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-17 14:51:08,655 - INFO - Applied optuna param batch_size=8
+2026-02-17 14:51:08,655 - INFO - Applied optuna param hop_length=320
+2026-02-17 14:51:08,655 - INFO - Applied optuna param n_fft=512
+2026-02-17 14:51:08,655 - INFO - Applied optuna param mel=OFF
+2026-02-17 14:51:08,655 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-17 14:51:08,655 - INFO - Loss type: circle
+2026-02-17 14:51:08,668 - INFO - Using device: cuda
+2026-02-17 14:51:09,116 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-17 14:51:12,091 - INFO - sim data ready. feature_min=-82.517052 feature_max=35.131508
+2026-02-17 14:51:12,302 - INFO - sim embedding extraction done: (1200, 64)
+2026-02-17 14:51:12,314 - INFO - sample_spectrogram: speed 101.0, loc1, car, right
+2026-02-17 14:51:13,276 - INFO - real data ready. feature_min=-50.958115 feature_max=41.006905
+2026-02-17 14:51:13,324 - INFO - real embedding extraction done: (400, 64)
+2026-02-17 14:51:13,327 - INFO - Fitting openTSNE on sim embeddings...
+2026-02-17 14:51:14,531 - INFO - sim data ready. feature_min=-82.517052 feature_max=35.131508
+2026-02-17 14:51:14,751 - INFO - sim embedding extraction done: (1200, 64)
+2026-02-17 14:51:14,763 - INFO - sample_spectrogram: speed 101.0, loc1, car, right
+2026-02-17 14:51:15,816 - INFO - real data ready. feature_min=-50.958115 feature_max=41.006905
+2026-02-17 14:51:15,865 - INFO - real embedding extraction done: (400, 64)
+2026-02-17 14:51:15,868 - INFO - Fitting openTSNE on sim embeddings...
+2026-02-17 14:51:22,933 - INFO - Transforming real embeddings into sim-trained space...
+2026-02-17 14:51:23,081 - INFO - Saved sim projection: outputs/sim2real_tsne/sim_projection.csv
+2026-02-17 14:51:23,081 - INFO - Saved real projection: outputs/sim2real_tsne/real_projection.csv
+2026-02-17 14:51:23,081 - INFO - Saved combined projection: outputs/sim2real_tsne/sim_real_projection.csv
+2026-02-17 14:51:23,246 - INFO - Saved overlay plot: outputs/sim2real_tsne/sim_fit_real_transform_overlay_speed.png
+2026-02-17 14:51:23,246 - INFO - Saved domain plot: outputs/sim2real_tsne/sim_fit_real_transform_overlay_domain.png
+2026-02-17 14:51:23,246 - INFO - Done. Outputs in outputs/sim2real_tsne
+2026-02-17 14:51:25,348 - INFO - Transforming real embeddings into sim-trained space...
+2026-02-17 14:51:25,480 - INFO - Saved sim projection: outputs/sim2real_tsne/sim_projection.csv
+2026-02-17 14:51:25,480 - INFO - Saved real projection: outputs/sim2real_tsne/real_projection.csv
+2026-02-17 14:51:25,480 - INFO - Saved combined projection: outputs/sim2real_tsne/sim_real_projection.csv
+2026-02-17 14:51:25,629 - INFO - Saved overlay plot: outputs/sim2real_tsne/sim_fit_real_transform_overlay_speed.png
+2026-02-17 14:51:25,629 - INFO - Saved domain plot: outputs/sim2real_tsne/sim_fit_real_transform_overlay_domain.png
+2026-02-17 14:51:25,629 - INFO - Done. Outputs in outputs/sim2real_tsne
+2026-02-17 14:55:11,814 - INFO - Applied optuna param batch_size=8
+2026-02-17 14:55:11,814 - INFO - Applied optuna param hop_length=320
+2026-02-17 14:55:11,814 - INFO - Applied optuna param n_fft=512
+2026-02-17 14:55:11,814 - INFO - Applied optuna param mel=OFF
+2026-02-17 14:55:11,814 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-17 14:55:11,814 - INFO - Loss type: circle
+2026-02-17 14:55:11,975 - INFO - Using device: cuda
+2026-02-17 14:55:12,438 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-17 14:55:17,632 - INFO - sim data ready. feature_min=-82.517052 feature_max=35.131508
+2026-02-17 14:55:17,840 - INFO - sim embedding extraction done: (1200, 64)
+2026-02-17 14:55:17,852 - INFO - sample_spectrogram: speed 101.0, loc1, car, right
+2026-02-17 14:55:18,785 - INFO - real data ready. feature_min=-50.958115 feature_max=41.006905
+2026-02-17 14:55:18,829 - INFO - real embedding extraction done: (400, 64)
+2026-02-17 14:55:18,831 - INFO - Fitting openTSNE on sim embeddings...
+2026-02-17 14:55:27,336 - INFO - Transforming real embeddings into sim-trained space...
+2026-02-17 14:55:27,477 - INFO - Saved sim projection: outputs/sim2real_tsne/sim_projection.csv
+2026-02-17 14:55:27,478 - INFO - Saved real projection: outputs/sim2real_tsne/real_projection.csv
+2026-02-17 14:55:27,478 - INFO - Saved combined projection: outputs/sim2real_tsne/sim_real_projection.csv
+2026-02-17 14:55:27,611 - INFO - Saved sim-class plot: outputs/sim2real_tsne/sim_distribution_4class.png
+2026-02-17 14:55:27,611 - INFO - Saved sim-real overlay plot: outputs/sim2real_tsne/sim_black_real_red_overlay.png
+2026-02-17 14:55:27,611 - INFO - Done. Outputs in outputs/sim2real_tsne
+2026-02-17 14:56:58,865 - INFO - Applied optuna param batch_size=8
+2026-02-17 14:56:58,865 - INFO - Applied optuna param hop_length=320
+2026-02-17 14:56:58,865 - INFO - Applied optuna param n_fft=512
+2026-02-17 14:56:58,865 - INFO - Applied optuna param mel=OFF
+2026-02-17 14:56:58,865 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-17 14:56:58,865 - INFO - Loss type: circle
+2026-02-17 14:56:58,912 - INFO - Using device: cuda
+2026-02-17 14:56:59,364 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-17 14:57:04,503 - INFO - sim data ready. feature_min=-82.517052 feature_max=35.131508
+2026-02-17 14:57:04,713 - INFO - sim embedding extraction done: (1200, 64)
+2026-02-17 14:57:04,732 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-17 14:57:19,093 - INFO - real data ready. feature_min=-100.000000 feature_max=46.114029
+2026-02-17 14:57:20,051 - INFO - real embedding extraction done: (8826, 64)
+2026-02-17 14:57:20,113 - INFO - Fitting openTSNE on sim embeddings...
+2026-02-17 14:57:28,612 - INFO - Transforming real embeddings into sim-trained space...
+2026-02-17 14:57:29,409 - INFO - Saved sim projection: outputs/sim2real_tsne/sim_projection.csv
+2026-02-17 14:57:29,409 - INFO - Saved real projection: outputs/sim2real_tsne/real_projection.csv
+2026-02-17 14:57:29,409 - INFO - Saved combined projection: outputs/sim2real_tsne/sim_real_projection.csv
+2026-02-17 14:57:29,573 - INFO - Saved sim-class plot: outputs/sim2real_tsne/sim_distribution_4class.png
+2026-02-17 14:57:29,574 - INFO - Saved sim-real overlay plot: outputs/sim2real_tsne/sim_black_real_red_overlay.png
+2026-02-17 14:57:29,574 - INFO - Done. Outputs in outputs/sim2real_tsne
+2026-02-17 15:00:35,751 - INFO - Applied optuna param batch_size=8
+2026-02-17 15:00:35,751 - INFO - Applied optuna param hop_length=320
+2026-02-17 15:00:35,751 - INFO - Applied optuna param n_fft=512
+2026-02-17 15:00:35,751 - INFO - Applied optuna param mel=OFF
+2026-02-17 15:00:35,751 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-17 15:00:35,751 - INFO - Loss type: circle
+2026-02-17 15:00:35,913 - INFO - Using device: cuda
+2026-02-17 15:00:36,390 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-17 15:00:41,515 - INFO - sim data ready. feature_min=-82.517052 feature_max=35.131508
+2026-02-17 15:00:41,724 - INFO - sim embedding extraction done: (1200, 64)
+2026-02-17 15:00:41,748 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-17 15:00:56,046 - INFO - real data ready. feature_min=-100.000000 feature_max=46.114029
+2026-02-17 15:00:57,012 - INFO - real embedding extraction done: (8826, 64)
+2026-02-17 15:00:57,068 - INFO - Fitting openTSNE on sim embeddings...
+2026-02-17 15:01:05,641 - INFO - Transforming real embeddings into sim-trained space...
+2026-02-17 15:01:06,428 - INFO - Saved sim projection: outputs/sim2real_tsne/sim_projection.csv
+2026-02-17 15:01:06,428 - INFO - Saved real projection: outputs/sim2real_tsne/real_projection.csv
+2026-02-17 15:01:06,428 - INFO - Saved combined projection: outputs/sim2real_tsne/sim_real_projection.csv
+2026-02-17 15:01:06,586 - INFO - Saved sim-class plot: outputs/sim2real_tsne/sim_distribution_4class.png
+2026-02-17 15:01:06,586 - INFO - Saved sim-real overlay plot: outputs/sim2real_tsne/sim_black_real_red_overlay.png
+2026-02-17 15:01:06,586 - INFO - Done. Outputs in outputs/sim2real_tsne
+2026-02-17 15:04:32,832 - INFO - Applied optuna param batch_size=8
+2026-02-17 15:04:32,833 - INFO - Applied optuna param hop_length=320
+2026-02-17 15:04:32,833 - INFO - Applied optuna param n_fft=512
+2026-02-17 15:04:32,833 - INFO - Applied optuna param mel=OFF
+2026-02-17 15:04:32,833 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-17 15:04:32,833 - INFO - Loss type: circle
+2026-02-17 15:04:32,991 - INFO - Using device: cuda
+2026-02-17 15:04:33,464 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-17 15:04:38,542 - INFO - sim data ready. feature_min=-82.517052 feature_max=35.131508
+2026-02-17 15:04:38,753 - INFO - sim embedding extraction done: (1200, 64)
+2026-02-17 15:04:38,775 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-17 15:04:52,998 - INFO - real data ready. feature_min=-100.000000 feature_max=46.114029
+2026-02-17 15:04:53,940 - INFO - real embedding extraction done: (8826, 64)
+2026-02-17 15:04:53,997 - INFO - Fitting openTSNE on sim embeddings...
+2026-02-17 15:05:02,520 - INFO - Transforming real embeddings into sim-trained space...
+2026-02-17 15:05:03,310 - INFO - Saved sim projection: outputs/sim2real_tsne/sim_projection.csv
+2026-02-17 15:05:03,310 - INFO - Saved real projection: outputs/sim2real_tsne/real_projection.csv
+2026-02-17 15:05:03,310 - INFO - Saved combined projection: outputs/sim2real_tsne/sim_real_projection.csv
+2026-02-17 15:05:03,450 - INFO - Saved sim-class plot: outputs/sim2real_tsne/sim_distribution_4class.png
+2026-02-17 15:05:03,450 - INFO - Saved sim-real overlay plot: outputs/sim2real_tsne/sim_black_real_red_overlay.png
+2026-02-17 15:05:03,450 - INFO - Done. Outputs in outputs/sim2real_tsne
+2026-02-17 15:05:42,333 - INFO - Applied optuna param batch_size=8
+2026-02-17 15:05:42,333 - INFO - Applied optuna param hop_length=320
+2026-02-17 15:05:42,333 - INFO - Applied optuna param n_fft=512
+2026-02-17 15:05:42,333 - INFO - Applied optuna param mel=OFF
+2026-02-17 15:05:42,333 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-17 15:05:42,333 - INFO - Loss type: circle
+2026-02-17 15:05:42,493 - INFO - Using device: cuda
+2026-02-17 15:05:42,963 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-17 15:05:48,166 - INFO - sim data ready. feature_min=-82.517052 feature_max=35.131508
+2026-02-17 15:05:48,376 - INFO - sim embedding extraction done: (1200, 64)
+2026-02-17 15:05:48,397 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-17 15:06:02,615 - INFO - real data ready. feature_min=-100.000000 feature_max=46.114029
+2026-02-17 15:06:03,584 - INFO - real embedding extraction done: (8826, 64)
+2026-02-17 15:06:03,642 - INFO - Fitting openTSNE on sim embeddings...
+2026-02-17 15:06:12,132 - INFO - Transforming real embeddings into sim-trained space...
+2026-02-17 15:06:12,932 - INFO - Saved sim projection: outputs/sim2real_tsne/sim_projection.csv
+2026-02-17 15:06:12,933 - INFO - Saved real projection: outputs/sim2real_tsne/real_projection.csv
+2026-02-17 15:06:12,933 - INFO - Saved combined projection: outputs/sim2real_tsne/sim_real_projection.csv
+2026-02-17 15:06:13,066 - INFO - Saved sim-class plot: outputs/sim2real_tsne/sim_distribution_4class.png
+2026-02-17 15:06:13,066 - INFO - Saved sim-real overlay plot: outputs/sim2real_tsne/sim_black_real_red_overlay.png
+2026-02-17 15:06:13,067 - INFO - Done. Outputs in outputs/sim2real_tsne
+2026-02-17 15:34:07,895 - INFO - Applied optuna param batch_size=8
+2026-02-17 15:34:07,895 - INFO - Applied optuna param hop_length=320
+2026-02-17 15:34:07,895 - INFO - Applied optuna param n_fft=512
+2026-02-17 15:34:07,895 - INFO - Applied optuna param mel=OFF
+2026-02-17 15:34:07,895 - INFO - Using encoder weights: outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth
+2026-02-17 15:34:07,895 - INFO - Loss type: circle
+2026-02-17 15:34:08,076 - INFO - Using device: cuda
+2026-02-17 15:34:08,531 - INFO - sample_spectrogram: speed 106, loc1, car, left
+2026-02-17 15:34:13,631 - INFO - sim data ready. feature_min=-82.517052 feature_max=35.131508
+2026-02-17 15:34:13,842 - INFO - sim embedding extraction done: (1200, 64)
+2026-02-17 15:34:13,864 - INFO - sample_spectrogram: speed 30.0, loc1, car, right
+2026-02-17 15:34:27,910 - INFO - real data ready. feature_min=-100.000000 feature_max=46.114029
+2026-02-17 15:34:28,885 - INFO - real embedding extraction done: (8826, 64)
+2026-02-17 15:34:28,943 - INFO - Fitting openTSNE on sim embeddings...
+2026-02-17 15:34:37,482 - INFO - Transforming real embeddings into sim-trained space...
+2026-02-17 15:34:38,296 - INFO - Saved sim projection: outputs/sim2real_tsne/sim_projection.csv
+2026-02-17 15:34:38,296 - INFO - Saved real projection: outputs/sim2real_tsne/real_projection.csv
+2026-02-17 15:34:38,296 - INFO - Saved combined projection: outputs/sim2real_tsne/sim_real_projection.csv
+2026-02-17 15:34:38,434 - INFO - Saved sim-class plot: outputs/sim2real_tsne/sim_distribution_4class.png
+2026-02-17 15:34:38,434 - INFO - Saved sim-real overlay plot: outputs/sim2real_tsne/sim_black_real_4class_overlay.png
+2026-02-17 15:34:38,434 - INFO - Done. Outputs in outputs/sim2real_tsne

@@ -182,7 +182,7 @@
          --epochs 30 \
          --batch-size 32 \
          --lr 1e-3 \
-         --visualization PCA
+         --visualization t-sne
          ```
       - HPO探索実行
         - 全モデルで探索（bashにまとめられている）

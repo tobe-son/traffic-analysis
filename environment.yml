@@ -42,6 +42,7 @@ dependencies:
   - torchmetrics>=1.3.0
   - hydra-core>=1.3.2
   - umap-learn>=0.5.9
+  - openTSNE>=1.0.2
 
   # --- MLOps (Optional in toml but included for "All-in") ---
   - neptune>=1.9.1
