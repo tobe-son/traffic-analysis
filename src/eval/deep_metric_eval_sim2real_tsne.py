@@ -161,7 +161,7 @@ def _save_sim_fourclass_plot(
     sim_direction: np.ndarray,
     path: Path,
 ) -> None:
-    fig, ax = plt.subplots(figsize=(5, 4))
+    fig, ax = plt.subplots(figsize=(10, 10))
 
     classes = (sim_vehicle_type.astype(int) * 2) + sim_direction.astype(int)
     class_styles = {
@@ -177,7 +177,7 @@ def _save_sim_fourclass_plot(
             ax.scatter(
                 sim_xy[mask, 0],
                 sim_xy[mask, 1],
-                s=20,
+                s=50,
                 c=style["color"],
                 alpha=0.9,
                 edgecolors="none",
@@ -200,7 +200,7 @@ def _save_sim_real_overlay_plot(
     real_direction: np.ndarray,
     path: Path,
 ) -> None:
-    fig, ax = plt.subplots(figsize=(5, 4))
+    fig, ax = plt.subplots(figsize=(10, 10))
     class_styles = {
         0: {"label": "real car/right", "color": "#1f77b4"},
         1: {"label": "real car/left", "color": "#ff7f0e"},
@@ -211,7 +211,7 @@ def _save_sim_real_overlay_plot(
     ax.scatter(
         sim_xy[:, 0],
         sim_xy[:, 1],
-        s=20,
+        s=50,
         c="black",
         alpha=0.55,
         edgecolors="none",
@@ -225,7 +225,7 @@ def _save_sim_real_overlay_plot(
             ax.scatter(
                 real_xy[mask, 0],
                 real_xy[mask, 1],
-                s=20,
+                s=50,
                 c=style["color"],
                 alpha=0.9,
                 edgecolors="none",
