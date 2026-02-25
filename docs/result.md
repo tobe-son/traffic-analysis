@@ -393,53 +393,53 @@ real-mono は元のラベル設計として「車種×進行方向」の4ラベ�
 
 | 事前学習/損失 | モデル | 版 | データ | MAE | RMSE | R2 | MAPE |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Circle | small | v1 | real | 31.577 | 38.498 | -2.698 | 53.511 |
+| Circle | small | v1 | real | 32.312 | 37.440 | -2.498 | 43.673 |
 | Circle | small | v1 | sim | 3.817 | 5.137 | 0.933 | 8.273 |
-| Circle | small | v2 | real | 31.577 | 38.498 | -2.698 | 53.511 |
+| Circle | small | v2 | real | 32.312 | 37.440 | -2.498 | 43.673 |
 | Circle | small | v2 | sim | 3.817 | 5.137 | 0.933 | 8.273 |
-| Circle | vgg11 | v1 | real | 41.634 | 49.359 | -5.079 | 74.994 |
+| Circle | vgg11 | v1 | real | 17.944 | 21.128 | -0.114 | 30.872 |
 | Circle | vgg11 | v1 | sim | 5.244 | 6.610 | 0.889 | 11.112 |
-| Circle | resnet18 | v1 | real | 22.313 | 27.955 | -0.950 | 28.676 |
+| Circle | resnet18 | v1 | real | 17.062 | 20.338 | -0.032 | 28.246 |
 | Circle | resnet18 | v1 | sim | 5.000 | 6.816 | 0.882 | 10.180 |
 | Circle | resnet50 | v1 | real | N/A | N/A | N/A | N/A |
 | Circle | resnet50 | v1 | sim | N/A | N/A | N/A | N/A |
-| ArcFace | small | v1 | real | 34.220 | 40.778 | -3.149 | 63.177 |
+| ArcFace | small | v1 | real | 16.932 | 20.208 | -0.019 | 24.125 |
 | ArcFace | small | v1 | sim | 10.587 | 14.117 | 0.493 | 21.415 |
-| ArcFace | small | v2 | real | 32.145 | 38.801 | -2.757 | 59.863 |
+| ArcFace | small | v2 | real | 17.276 | 20.616 | -0.061 | 24.310 |
 | ArcFace | small | v2 | sim | 10.687 | 14.216 | 0.486 | 21.555 |
-| ArcFace | vgg11 | v1 | real | 115.321 | 119.192 | -34.449 | 187.963 |
+| ArcFace | vgg11 | v1 | real | 18.588 | 22.623 | -0.277 | 34.132 |
 | ArcFace | vgg11 | v1 | sim | 4.460 | 6.106 | 0.905 | 9.398 |
-| ArcFace | resnet18 | v1 | real | 38.748 | 49.730 | -5.171 | 67.864 |
+| ArcFace | resnet18 | v1 | real | 25.394 | 30.278 | -1.288 | 32.342 |
 | ArcFace | resnet18 | v1 | sim | 3.285 | 4.355 | 0.952 | 6.836 |
 | ArcFace | resnet50 | v1 | real | N/A | N/A | N/A | N/A |
 | ArcFace | resnet50 | v1 | sim | N/A | N/A | N/A | N/A |
-| LogRatio | small | v1 | real | 275.795 | 306.996 | -234.170 | 442.694 |
+| LogRatio | small | v1 | real | 20.090 | 24.666 | -0.518 | 31.191 |
 | LogRatio | small | v1 | sim | 7.314 | 9.314 | 0.779 | 15.352 |
-| LogRatio | small | v2 | real | 275.795 | 306.996 | -234.170 | 442.694 |
+| LogRatio | small | v2 | real | 20.090 | 24.666 | -0.518 | 31.191 |
 | LogRatio | small | v2 | sim | 7.314 | 9.314 | 0.779 | 15.352 |
-| LogRatio | vgg11 | v1 | real | 19.876 | 24.020 | -0.440 | 28.588 |
+| LogRatio | vgg11 | v1 | real | 21.252 | 25.075 | -0.569 | 38.184 |
 | LogRatio | vgg11 | v1 | sim | 4.330 | 5.774 | 0.915 | 8.817 |
-| LogRatio | resnet18 | v1 | real | 27.624 | 32.757 | -1.678 | 34.627 |
+| LogRatio | resnet18 | v1 | real | 26.298 | 31.247 | -1.436 | 33.427 |
 | LogRatio | resnet18 | v1 | sim | 3.349 | 4.219 | 0.955 | 7.086 |
 | LogRatio | resnet50 | v1 | real | N/A | N/A | N/A | N/A |
 | LogRatio | resnet50 | v1 | sim | N/A | N/A | N/A | N/A |
-| Circle->LogRatio | small | v1 | real | 2816.934 | 2859.085 | -20396.160 | 4322.663 |
+| Circle->LogRatio | small | v1 | real | 57.251 | 60.884 | -8.250 | 78.073 |
 | Circle->LogRatio | small | v1 | sim | 4.076 | 5.391 | 0.926 | 8.593 |
-| Circle->LogRatio | small | v2 | real | 17368.193 | 17666.926 | -778819.922 | 26505.864 |
+| Circle->LogRatio | small | v2 | real | 41.625 | 47.634 | -4.662 | 53.605 |
 | Circle->LogRatio | small | v2 | sim | 3.806 | 5.140 | 0.933 | 7.602 |
 | Circle->LogRatio | vgg11 | v1 | real | 17.933 | 21.028 | -0.103 | 31.715 |
 | Circle->LogRatio | vgg11 | v1 | sim | 4.874 | 6.172 | 0.903 | 10.443 |
-| Circle->LogRatio | resnet18 | v1 | real | 23.818 | 30.423 | -1.310 | 29.861 |
+| Circle->LogRatio | resnet18 | v1 | real | 18.547 | 22.373 | -0.249 | 28.689 |
 | Circle->LogRatio | resnet18 | v1 | sim | 3.422 | 4.553 | 0.947 | 7.262 |
 | Circle->LogRatio | resnet50 | v1 | real | N/A | N/A | N/A | N/A |
 | Circle->LogRatio | resnet50 | v1 | sim | N/A | N/A | N/A | N/A |
-| ArcFace->LogRatio | small | v1 | real | 133.856 | 141.695 | -49.099 | 221.332 |
+| ArcFace->LogRatio | small | v1 | real | 30.197 | 36.031 | -2.239 | 37.744 |
 | ArcFace->LogRatio | small | v1 | sim | 5.797 | 7.499 | 0.857 | 11.665 |
-| ArcFace->LogRatio | small | v2 | real | 615.437 | 618.844 | -954.604 | 957.598 |
+| ArcFace->LogRatio | small | v2 | real | 42.789 | 47.173 | -4.553 | 55.829 |
 | ArcFace->LogRatio | small | v2 | sim | 6.925 | 9.034 | 0.792 | 13.944 |
-| ArcFace->LogRatio | vgg11 | v1 | real | 18.714 | 23.475 | -0.375 | 26.228 |
+| ArcFace->LogRatio | vgg11 | v1 | real | 19.184 | 23.691 | -0.401 | 29.066 |
 | ArcFace->LogRatio | vgg11 | v1 | sim | 3.839 | 4.816 | 0.941 | 8.089 |
-| ArcFace->LogRatio | resnet18 | v1 | real | 118.010 | 127.193 | -39.369 | 195.762 |
+| ArcFace->LogRatio | resnet18 | v1 | real | 21.330 | 25.515 | -0.624 | 28.327 |
 | ArcFace->LogRatio | resnet18 | v1 | sim | 3.879 | 5.004 | 0.936 | 8.016 |
 | ArcFace->LogRatio | resnet50 | v1 | real | N/A | N/A | N/A | N/A |
 | ArcFace->LogRatio | resnet50 | v1 | sim | N/A | N/A | N/A | N/A |
@@ -447,5 +447,5 @@ real-mono は元のラベル設計として「車種×進行方向」の4ラベ�
 ### 考察
 
 - sim では多くの条件で R2 が高く (例: Circle(small) 0.933, ArcFace(resnet18) 0.952, LogRatio(resnet18) 0.955)、速度回帰としては成立している。一方で ArcFace(small) は sim でも R2 が 0.49 程度と低く、事前学習表現が回帰タスクに十分転移していない可能性がある。
-- real では全体的に R2 が負で、MAE/RMSE も大きい。これは「モデル選択の問題」というより、sim→real のドメインギャップ、速度ラベルのノイズ/定義差、入力信号（音）から速度を推定する情報量の不足など、データ側要因が支配的であることを示唆する。
-- 継続事前学習（Circle->LogRatio / ArcFace->LogRatio）で real の誤差が極端に大きい行があり、学習が不安定（発散/スケール不整合）になっている可能性が高い。少なくとも現状の設定では「real の速度回帰を良くする」方向には寄与していない。
+- real では今回の再学習後も全条件で R2 は負のままで、sim→real ギャップは依然として大きい。ただし一部条件（例: ArcFace(small v1) R2=-0.019、Circle(resnet18) R2=-0.032）は 0 に近づいており、以前のような極端な崩壊値は大幅に緩和された。
+- 継続事前学習（Circle->LogRatio / ArcFace->LogRatio）は、vgg11/resnet18 では real の誤差が比較的抑えられる一方、small では R2 がより悪化する行（例: Circle->LogRatio(small v1/v2), ArcFace->LogRatio(small v2)）が残る。現状設定では「継続事前学習が常に有利」とは言えず、モデル容量ごとの学習率・凍結方針・エポック設計の再調整が必要である。
