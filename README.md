@@ -21,13 +21,13 @@
    車種（car, cv）および進行方向（right, left）のラベルを用い、4種のCNN系エンコーダで低次元表現を学習しました。Adamを用いて300エポックで学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
 
 - **実験２： Arcface Loss による潜在空間の取得**  
-   実験1と同様にArcface Lossを用いて低次元表現を学習しました。Adamを用いて300エポックで学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
+   実験1と同様にArcface Lossを用いて低次元表現を学習しました。Adamを用いて学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
 
 - **実験３： Log-ratio Loss による潜在空間の取得**
-    Circle LossとArcface Lossで事前学習したモデルに対し、連続値の速度ラベルを反映させるためLog-ratio Lossを適用。Adam（学習率1e-3、バッチサイズ32）で100エポック学習し、t-SNEによる可視化で速度情報が保持された潜在空間が形成されることを確認しました。
+    Circle LossとArcface Lossで事前学習したモデルに対し、連続値の速度ラベルを反映させるためLog-ratio Lossを適用。Adamで学習し、t-SNEによる可視化で速度情報が保持された潜在空間が形成されることを確認しました。
 
 - **実験４： 速度予測モデルの構築**  
-   Log-ratio Lossで得られた潜在空間の特徴を活用し、CNNエンコーダの出力を全結合層で64次元に圧縮後、DNN（構成：64→128→1）を用いて速度を回帰予測するモデルを構築しました。Adam（学習率1e-3、バッチサイズ32）で100エポック学習した結果、事前学習済みCNNの有用性が示され、平均で約±5.4 km/hの誤差内で速度予測が可能であることが確認されました。
+   Log-ratio Lossで得られた潜在空間の特徴を活用し、CNNエンコーダの出力を全結合層で64次元に圧縮後、DNN（構成：64→128→1）を用いて速度を回帰予測するモデルを構築しました。Adam（学習率1e-3、バッチサイズ32）で100エポック学習した結果、事前学習済みCNNの有用性が示され、速度予測が可能であることが確認されました。
 
 第二段階として、作成したモデルに実データを適用して、システムの有用性を検証しました。実験は以下の2種類を行いました。
 - **実験５： IDMTデータセットを用いた車種分類評価**  
@@ -309,10 +309,20 @@
 （CC BY-NC-SA 4.0）
 
 ## 参考文献
-@inproceedings{djukanovic2022dataset,
-author = "Slobodan Djukanovi\'{c} and Nikola Bulatovi\'{c} and Ivana \v{C}avor",
-title = "A dataset for audio-video based vehicle speed estimation",
-booktitle = "2022 30th Telecommunications Forum (TELFOR)",
-year = "2022",
-pages = "1-4"
-}
+[1] 平野篤:「画像認識型交通量観測装置(AI カメラ)を活用した初の一般交通量調査の実施について」, 九州技報 第72号, トピックス, 2023, https://www.qsr.mlit.go.jp/site_files/file/n-shiryo/r4kenkyu/4-01.pdf.
+
+[2] M. Crocco, et al., "Audio Surveillance: A Systematic Review," ACM Computing Surveys, 2016, Art. no. 52.
+
+[3] Y. Sun, et al., "Circle Loss: A Unified Perspective of Pair Similarity Optimization," in Proc. CVPR, 2020, pp. 6398-6407.
+
+[4] J. Deng, et al., "ArcFace: Additive Angular Margin Loss for Deep Face Recognition," in Proc. CVPR, 2019, pp. 4690-4699.
+
+[5] S. Kim, et al., "Deep Metric Learning Beyond Binary Supervision," in Proc. CVPR, 2019, pp. 2283-2292.
+
+[6] T. Akiba, et al., "Optuna: A Next-generation Hyperparameter Optimization Framework," in Proc. KDD, 2019, pp. 2623-2631.
+
+[7] DCASE community: "Acoustic-Based Traffic Monitoring", DCASEHP, https://dcase.community/challenge2024/task-acoustic-based-trafficmonitoring, 参照日: 2025-11-17.
+
+[8] J. Abeßer, et al., "IDMT-Traffic: An Open Benchmark Dataset for Acoustic Traffic Monitoring Research," in Proc. EUSIPCO, 2021, pp. 551-555.
+
+[9] S. Djukanović, et al., "A dataset for audio-video based vehicle speed estimation," in Proc. 2022 30th Telecommunications Forum (TELFOR), 2022, pp. 1-4.
