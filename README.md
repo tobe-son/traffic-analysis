@@ -194,7 +194,7 @@
       - HPO探索実行
         - 全モデルで探索（bashにまとめられている）
           ```bash
-          bash ./exp0_hpo.sh
+          bash ./scripts/exp0_hpo.sh
           ```
 
    - **実験１（CircleLossによる深層距離学習）**  
@@ -214,7 +214,7 @@
       - HPO探索実行
         - 全モデルで探索（bashにまとめられている）
           ```bash
-          bash ./exp1_hpo.sh
+          bash ./scripts/exp1_hpo.sh
           ```
 
    - **実験２（ArcfaceLossによる深層距離学習）**
@@ -234,7 +234,7 @@
       - HPO探索実行
         - 全モデルで探索（bashにまとめられている）
           ```bash
-          bash ./exp2_hpo.sh
+          bash ./scripts/exp2_hpo.sh
           ```
 
    - **実験３（LogRatioLossによる連続情報を保持した潜在空間の取得）**  
@@ -242,11 +242,11 @@
       - HPO探索実行
         - 新規にLogRatioLossで全モデルを探索（bashにまとめられている）
           ```bash
-          bash ./exp3_hpo.sh
+          bash ./scripts/exp3_hpo.sh
           ```
         - CircleLoss事前学習からの継続学習パラメータを全モデルで探索
           ```bash
-          bash ./exp3c_hpo.sh
+          bash ./scripts/exp3c_hpo.sh
           ```
         - ArcFaceLoss事前学習からの継続学習パラメータを全モデルで探索
           ```bash

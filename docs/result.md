@@ -236,16 +236,16 @@
 
 ## 実験4: 速度回帰 (MLP) ハイパパラメータ
 
-実験4の学習は `src/mlp/speedPrediction.py` を使用し、`exp4.sh` の実行設定とスクリプト既定値をまとめる。
+実験4の学習は `src/mlp/speedPrediction.py` を使用し、`scripts/exp4.sh` の実行設定とスクリプト既定値をまとめる。
 
 | 項目 | 値 |
 | --- | --- |
 | optimizer | Adam |
 | lr | 0.001 (既定値) |
 | encoder_lr | lr と同一 (既定値) |
-| epochs | 100 (exp4.sh) |
-| batch_size | 32 (exp4.sh) |
-| loss | mse (exp4.sh) |
+| epochs | 100 (scripts/exp4.sh) |
+| batch_size | 32 (scripts/exp4.sh) |
+| loss | mse (scripts/exp4.sh) |
 | hidden_dim | 128 (既定値) |
 | dropout | 0.0 (既定値) |
 | freeze_encoder | false (既定値) |
