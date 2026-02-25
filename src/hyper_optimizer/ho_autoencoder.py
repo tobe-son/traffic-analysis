@@ -7,10 +7,12 @@ runs Optuna to minimise validation loss. Each trial saves its own outputs under
 
 import argparse
 import gc
+import shutil
 import sys
 from pathlib import Path
 
 import optuna
+from optuna import distributions as optuna_distributions
 
 # Allow imports from the src directory
 SRC_ROOT = Path(__file__).resolve().parents[1]
@@ -39,9 +41,34 @@ def parse_hpo_args() -> argparse.Namespace:
     parser.add_argument("--storage", default=None, help="Optuna storage URL (e.g., sqlite:///hpo.db)")
     parser.add_argument("--pruner", choices=["none", "median"], default="median")
     parser.add_argument("--seed", type=int, default=42)
+
+    parser.add_argument(
+        "--reset-study",
+        action="store_true",
+        help=(
+            "Delete an existing study (same --study-name/--storage) before starting. "
+            "Useful when you changed the HPO search space and Optuna refuses to resume."
+        ),
+    )
+
     parser.add_argument("--min-epochs", type=int, default=10)
     parser.add_argument("--max-epochs", type=int, default=40)
     parser.add_argument("--n-jobs", type=int, default=1, help="Parallel Optuna workers")
+
+    parser.add_argument(
+        "--save-checkpoints",
+        action="store_true",
+        help="Keep best/optimizer checkpoint files in each trial output_dir (can consume disk).",
+    )
+
+    parser.add_argument(
+        "--export-best-weights",
+        action="store_true",
+        help=(
+            "Copy the best trial's autoencoder weights into outputs/optuna_studies/<study_name>/ after optimization. "
+            "This implicitly enables --save-checkpoints."
+        ),
+    )
 
     parser.add_argument(
         "--hpo-config",
@@ -53,6 +80,116 @@ def parse_hpo_args() -> argparse.Namespace:
         ),
     )
     return parser.parse_args()
+
+
+def _build_expected_distributions(
+    *,
+    cli_args: argparse.Namespace,
+    representation: str,
+) -> dict[str, optuna_distributions.BaseDistribution]:
+    """Build expected Optuna distributions for this run.
+
+    Used to detect incompatible changes when resuming an existing study.
+    """
+
+    expected: dict[str, optuna_distributions.BaseDistribution] = {}
+
+    def _resolve_from_cli(value: object) -> object:
+        if isinstance(value, dict) and "from_cli" in value:
+            attr = value["from_cli"]
+            if not hasattr(cli_args, attr):
+                raise ValueError(f"HPO config requested from_cli='{attr}', but CLI args has no such attribute")
+            return getattr(cli_args, attr)
+        return value
+
+    hpo_space = load_hpo_space(cli_args.hpo_config)
+    if hpo_space is not None:
+        for name, spec in hpo_space.common.items():
+            spec_type = spec.get("type")
+            if spec_type == "fixed":
+                continue
+            if spec_type == "categorical":
+                expected[name] = optuna_distributions.CategoricalDistribution(choices=spec.get("choices"))
+            elif spec_type == "float":
+                low = float(_resolve_from_cli(spec.get("low")))
+                high = float(_resolve_from_cli(spec.get("high")))
+                expected[name] = optuna_distributions.FloatDistribution(
+                    low=low,
+                    high=high,
+                    log=bool(spec.get("log", False)),
+                )
+            elif spec_type == "int":
+                low = int(_resolve_from_cli(spec.get("low")))
+                high = int(_resolve_from_cli(spec.get("high")))
+                expected[name] = optuna_distributions.IntDistribution(low=low, high=high)
+            else:
+                raise ValueError(f"Unsupported HPO config spec type for '{name}': {spec_type}")
+
+        if representation == "spectrogram":
+            for name, spec in hpo_space.spectrogram.items():
+                spec_type = spec.get("type")
+                if spec_type == "fixed":
+                    continue
+                if spec_type == "categorical":
+                    expected[name] = optuna_distributions.CategoricalDistribution(choices=spec.get("choices"))
+                elif spec_type == "float":
+                    low = float(_resolve_from_cli(spec.get("low")))
+                    high = float(_resolve_from_cli(spec.get("high")))
+                    expected[name] = optuna_distributions.FloatDistribution(
+                        low=low,
+                        high=high,
+                        log=bool(spec.get("log", False)),
+                    )
+                elif spec_type == "int":
+                    low = int(_resolve_from_cli(spec.get("low")))
+                    high = int(_resolve_from_cli(spec.get("high")))
+                    expected[name] = optuna_distributions.IntDistribution(low=low, high=high)
+                else:
+                    raise ValueError(f"Unsupported HPO config spec type for 'spectrogram.{name}': {spec_type}")
+
+        return expected
+
+    expected["batch_size"] = optuna_distributions.CategoricalDistribution(choices=[16, 32, 48, 64])
+    expected["lr"] = optuna_distributions.FloatDistribution(low=1e-4, high=5e-3, log=True)
+    expected["epochs"] = optuna_distributions.IntDistribution(low=int(cli_args.min_epochs), high=int(cli_args.max_epochs))
+
+    if representation == "spectrogram":
+        expected["n_fft"] = optuna_distributions.CategoricalDistribution(choices=[512, 1024, 2048])
+        expected["hop_length"] = optuna_distributions.CategoricalDistribution(choices=[128, 256, 512])
+        if cli_args.mel is None:
+            expected["mel"] = optuna_distributions.CategoricalDistribution(choices=["OFF", "ON"])
+
+    return expected
+
+
+def _ensure_study_compatible(
+    *,
+    study: optuna.Study,
+    expected: dict[str, optuna_distributions.BaseDistribution],
+) -> None:
+    previous: dict[str, optuna_distributions.BaseDistribution] = {}
+    for t in study.trials:
+        for name, dist in t.distributions.items():
+            if name not in previous:
+                previous[name] = dist
+
+    for name, exp_dist in expected.items():
+        prev_dist = previous.get(name)
+        if prev_dist is None:
+            continue
+        try:
+            optuna.distributions.check_distribution_compatibility(prev_dist, exp_dist)
+        except ValueError as exc:
+            raise RuntimeError(
+                "既存の Optuna study を再開できません（探索空間が過去と互換ではありません）。\n"
+                f"- study: {study.study_name}\n"
+                f"- param: {name}\n"
+                f"- previous: {prev_dist}\n"
+                f"- current: {exp_dist}\n"
+                "対処: (A) --study-name を変える / (B) --reset-study を付けて既存 study を削除してやり直す\n"
+                "例: python -c \"import optuna; optuna.delete_study(study_name='NAME', storage='sqlite:///PATH.db')\"\n"
+                f"detail: {exc}"
+            )
 
 
 def build_pruner(name: str) -> optuna.pruners.BasePruner:
@@ -139,6 +276,17 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
             trial=trial,
         )
         trial.set_user_attr("output_dir", output_dir)
+
+        if not cli_args.save_checkpoints:
+            out = Path(output_dir)
+            for name in (f"best_model_{args.model}.pth", f"optimizer_{args.model}.pth"):
+                path = out / name
+                try:
+                    if path.exists():
+                        path.unlink()
+                except Exception:
+                    pass
+
         return best_loss
     except RuntimeError as exc:
         msg = str(exc).lower()
@@ -167,8 +315,19 @@ def objective(trial: optuna.Trial, cli_args: argparse.Namespace) -> float:
 def main() -> None:
     cli_args = parse_hpo_args()
 
+    if cli_args.export_best_weights and not cli_args.save_checkpoints:
+        cli_args.save_checkpoints = True
+
     sampler = optuna.samplers.TPESampler(seed=cli_args.seed)
     pruner = build_pruner(cli_args.pruner)
+
+    if cli_args.reset_study:
+        if not cli_args.storage or not cli_args.study_name:
+            raise ValueError("--reset-study には --storage と --study-name の両方が必要です")
+        try:
+            optuna.delete_study(study_name=cli_args.study_name, storage=cli_args.storage)
+        except KeyError:
+            pass
 
     study = optuna.create_study(
         direction="minimize",
@@ -179,11 +338,16 @@ def main() -> None:
         load_if_exists=True,
     )
 
+    representation = CNN_any.resolve_representation(cli_args.model, cli_args.representation)
+    expected = _build_expected_distributions(cli_args=cli_args, representation=representation)
+    _ensure_study_compatible(study=study, expected=expected)
+
     study.optimize(
         lambda trial: objective(trial, cli_args),
         n_trials=cli_args.n_trials,
         timeout=cli_args.timeout,
         n_jobs=cli_args.n_jobs,
+        catch=(RuntimeError,),
         show_progress_bar=False,
     )
 
@@ -212,6 +376,9 @@ def main() -> None:
         "hpo_config": cli_args.hpo_config,
         "pruner": cli_args.pruner,
         "n_jobs": cli_args.n_jobs,
+        "reset_study": cli_args.reset_study,
+        "save_checkpoints": cli_args.save_checkpoints,
+        "export_best_weights": cli_args.export_best_weights,
         "argv": sys.argv,
     }
 
@@ -224,6 +391,30 @@ def main() -> None:
 
     print("Artifacts in:", str(out_path))
     print("Optuna summary:", str(best_json_path))
+
+    if cli_args.export_best_weights and completed:
+        best_trial = study.best_trial
+        best_dir = Path(str(best_trial.user_attrs.get("output_dir", "")))
+        best_model = best_dir / f"best_model_{cli_args.model}.pth"
+        best_opt = best_dir / f"optimizer_{cli_args.model}.pth"
+
+        copied_any = False
+        if best_dir and best_model.exists():
+            dest = out_path / best_model.name
+            shutil.copy2(best_model, dest)
+            print("Best model copied to:", str(dest))
+            copied_any = True
+        if best_dir and best_opt.exists():
+            dest = out_path / best_opt.name
+            shutil.copy2(best_opt, dest)
+            print("Best optimizer state copied to:", str(dest))
+            copied_any = True
+
+        if not copied_any:
+            print(
+                "Warning: best checkpoint files not found in best trial output_dir. "
+                "Ensure the trial completed successfully and checkpoint files were not removed."
+            )
 
 
 if __name__ == "__main__":
