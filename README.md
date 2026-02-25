@@ -321,7 +321,7 @@
 
 [6] T. Akiba, et al., "Optuna: A Next-generation Hyperparameter Optimization Framework," in Proc. KDD, 2019, pp. 2623-2631.
 
-[7] DCASE community: "Acoustic-Based Traffic Monitoring", DCASEHP, https://dcase.community/challenge2024/task-acoustic-based-trafficmonitoring, 参照日: 2025-11-17.
+[7] DCASE community: "Acoustic-Based Traffic Monitoring", DCASEHP, https://dcase.community/challenge2024/task-acoustic-based-traffic-monitoring, 参照日: 2025-11-17.
 
 [8] J. Abeßer, et al., "IDMT-Traffic: An Open Benchmark Dataset for Acoustic Traffic Monitoring Research," in Proc. EUSIPCO, 2021, pp. 551-555.
 
