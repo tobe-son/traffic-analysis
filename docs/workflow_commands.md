@@ -14,7 +14,7 @@
 ## 0. 環境
 
 ```bash
-cd /home/tobeson/traffic-analysis
+cd ~/traffic-analysis  # または実際のリポジトリパスへ変更してください
 conda activate traf_ana
 ```
 
@@ -25,7 +25,7 @@ conda activate traf_ana
 ### 1-1) 6秒切り出し（12〜18秒）
 
 ```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/sim_data_tool/cut.py
+MPLBACKEND=Agg python src/sim_data_tool/cut.py
 ```
 
 出力: `data/processed/datasets/loc{1..6}_cut/<car|cv>/<left|right>/*.flac`
@@ -33,7 +33,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/sim_data_to
 ### 1-2) メタCSV結合
 
 ```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/sim_data_tool/combain.py
+MPLBACKEND=Agg python src/sim_data_tool/combain.py
 ```
 
 出力: `data/processed/datasets/data_1-6.csv`
@@ -50,7 +50,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/sim_data_to
 
 ```bash
 # small
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/autoencoder/CNN_any.py \
+MPLBACKEND=Agg python src/autoencoder/CNN_any.py \
   --model small \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -61,7 +61,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/autoencoder
   --visualization PCA
 
 # vgg11
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/autoencoder/CNN_any.py \
+MPLBACKEND=Agg python src/autoencoder/CNN_any.py \
   --model vgg11 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -72,7 +72,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/autoencoder
   --visualization PCA
 
 # resnet（legacy）
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/autoencoder/CNN_any.py \
+MPLBACKEND=Agg python src/autoencoder/CNN_any.py \
   --model resnet \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -91,7 +91,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/autoencoder
 
 ```bash
 # small
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/LabelClustering.py \
+MPLBACKEND=Agg python src/metric/LabelClustering.py \
   --model small \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -101,7 +101,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/Labe
   --visualization PCA
 
 # ResNet-18 / ResNet-50（追加済み）
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/LabelClustering.py \
+MPLBACKEND=Agg python src/metric/LabelClustering.py \
   --model resnet18 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -110,7 +110,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/Labe
   --batch-size 64 \
   --visualization PCA
 
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/LabelClustering.py \
+MPLBACKEND=Agg python src/metric/LabelClustering.py \
   --model resnet50 \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -134,7 +134,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/Labe
 ### 3-1) ローカルsqliteに保存して実行
 
 ```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_autoencoder.py \
+MPLBACKEND=Agg python src/hyper_optimizer/ho_autoencoder.py \
   --model small \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -159,7 +159,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
 `src/hyper_optimizer/ho_labelclustering.py` は `src/metric/LabelClustering.py`（CircleLoss）を Optuna で最適化します。
 
 ```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optimizer/ho_labelclustering.py \
+MPLBACKEND=Agg python src/hyper_optimizer/ho_labelclustering.py \
   --model small \
   --data-selection loc1-6 \
   --data-csv ./data/processed/datasets/data_1-6.csv \
@@ -183,7 +183,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/hyper_optim
 ### 4-1) IDMT_Traffic（車種分類向け）
 
 ```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/real_data_tool/prepare_real_data.py idmt \
+MPLBACKEND=Agg python src/real_data_tool/prepare_real_data.py idmt \
   --raw-dir ./data/raw/IDMT_Traffic \
   --out-dir ./data/processed/real/idmt_traffic \
   --csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
@@ -194,7 +194,7 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/real_data_t
 ### 4-2) VS13（速度推定向け）
 
 ```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/real_data_tool/prepare_real_data.py vs13 \
+MPLBACKEND=Agg python src/real_data_tool/prepare_real_data.py vs13 \
   --raw-dir ./data/raw/VS13 \
   --out-dir ./data/processed/real/vs13 \
   --csv ./data/processed/real/vs13/vs13.csv \
@@ -204,94 +204,135 @@ MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/real_data_t
 
 ---
 
-## 5. 実データで推論・評価
+## 5. 速度予測 MLP の学習（VS13）
 
-### 5-A) IDMT（車種分類）
-
-IDMT の `idmt_traffic.csv` を使って、実データ上で CircleLoss 学習（≒表現学習）を回し、潜在空間/メタデータを出力します。
+事前学習済みエンコーダ（CircleLoss/ArcFace/LogRatio いずれか）を利用して、VS13 実データで MLP 回帰モデルを学習します。
+全モデル・全事前学習の組み合わせをまとめて実行する場合は以下のシェルスクリプトを使用します:
 
 ```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/LabelClustering.py \
-  --model small \
-  --data-csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
-  --main-data-dir ./data/processed/real/idmt_traffic \
-  --data-selection loc1-6 \
-  --epochs 20 \
-  --batch-size 64 \
-  --visualization PCA
+bash ./exp4.sh
 ```
 
-（別アーキテクチャ例）:
+個別に実行する場合の例:
 
 ```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/LabelClustering.py \
-  --model resnet18 \
-  --data-csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
-  --main-data-dir ./data/processed/real/idmt_traffic \
-  --data-selection loc1-6 \
-  --epochs 20 \
-  --batch-size 64 \
-  --visualization PCA
-```
-
-（学習せずに t-SNE だけ見たい場合: 推論/可視化モード）:
-
-```bash
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/metric/LabelClustering.py \
+# 事前学習（Circle Loss: small）からのMLP回帰学習
+MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model small \
-  --encoder-weights ./outputs/<日付>/<時刻>/best_encoder_small.pth \
-  --no-train \
-  --data-csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
-  --main-data-dir ./data/processed/real/idmt_traffic \
-  --data-selection loc1-6 \
-  --batch-size 64 \
-  --visualization t-SNE \
-  --dimension 2 \
-  --max-points 3000
-```
-
-※IDMT のサンプル数が多い場合、t-SNE は重くなりやすいので `--max-points` で間引くのがおすすめです。
-
-### 5-B) VS13（速度推定）
-
-`speedPrediction.py` は、**事前学習済み encoder weights**（例: `best_encoder_small.pth`）を読み込み、MLP回帰（＋必要ならencoder微調整）を行います。
-
-```bash
-# 例: 直前の LabelClustering の出力 encoder を利用
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/mlp/speedPrediction.py \
-  --model small \
-  --encoder-weights ./outputs/<日付>/<時刻>/best_encoder_small.pth \
-  --data-csv ./data/processed/real/vs13/vs13.csv \
-  --main-data-dir ./data/processed/real/vs13 \
-  --data-selection loc1 \
+  --encoder-weights ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth \
   --epochs 100 \
   --batch-size 32 \
-  --loss mse
+  --loss mse \
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_optuna_small_loc1-6_v1
 
-# encoder を固定したい場合
-MPLBACKEND=Agg /home/tobeson/miniconda3/envs/traf_ana/bin/python src/mlp/speedPrediction.py \
+# encoder を固定したい場合は --freeze-encoder を追加
+MPLBACKEND=Agg python src/mlp/speedPrediction.py \
   --model small \
-  --encoder-weights ./outputs/<日付>/<時刻>/best_encoder_small.pth \
-  --data-csv ./data/processed/real/vs13/vs13.csv \
-  --main-data-dir ./data/processed/real/vs13 \
-  --data-selection loc1 \
+  --encoder-weights ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth \
   --epochs 100 \
   --batch-size 32 \
+  --loss mse \
   --freeze-encoder \
-  --loss mse
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_optuna_small_loc1-6_v1
 ```
 
 成果物:
-- `outputs/<日付>/<時刻>/loss_curve.png`
-- `outputs/<日付>/<時刻>/train_predictions_<loss>.csv`
-- `outputs/<日付>/<時刻>/val_predictions_<loss>.csv`
+- `outputs/speed_prediction/<study_name>/best_speed_regressor_<loss>.pth`
+- `outputs/speed_prediction/<study_name>/loss_curve.png`
+- `outputs/speed_prediction/<study_name>/train_predictions_<loss>.csv`
+- `outputs/speed_prediction/<study_name>/val_predictions_<loss>.csv`
 
 ---
 
-## 6. 最小スモークテスト（変換後に「読めるか」だけ確認）
+## 6. 車種分類評価（IDMT / 実データ）
+
+事前学習済みエンコーダを使って IDMT 実データ上で車種分類性能を評価します。
+全モデル・全事前学習の組み合わせをまとめて実行する場合は以下のシェルスクリプトを使用します:
 
 ```bash
-/home/tobeson/miniconda3/envs/traf_ana/bin/python src/real_data_tool/smoke_real_pipeline.py \
+bash ./exp5.sh
+```
+
+個別に実行する場合の例:
+
+```bash
+# Circle Loss（small）のシミュレーションデータでの評価
+python -m src.eval.deep_metric_eval \
+  --encoder-weights ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth \
+  --model small \
+  --data-csv ./data/processed/datasets/data_1-6.csv \
+  --main-data-dir ./data/processed/datasets \
+  --data-selection loc1-6 \
+  --dimension 2 \
+  --optuna-params ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/optuna_best.json \
+  --output-dir ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/eval-sim/
+
+# Circle Loss（small）の実データでの評価（車種×方向の4クラス）
+python -m src.eval.deep_metric_eval \
+  --encoder-weights ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth \
+  --model small \
+  --data-csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
+  --main-data-dir ./data/processed/real/idmt_traffic \
+  --data-selection loc1-6 \
+  --dimension 2 \
+  --optuna-params ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/optuna_best.json \
+  --output-dir ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/eval-real/
+
+# 実データのモノラル評価（車種の2クラスのみ、方向なし）
+python -m src.eval.deep_metric_eval_mono \
+  --encoder-weights ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/best_encoder_small.pth \
+  --model small \
+  --data-csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
+  --main-data-dir ./data/processed/real/idmt_traffic \
+  --data-selection loc1-6 \
+  --dimension 2 \
+  --optuna-params ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/optuna_best.json \
+  --output-dir ./outputs/optuna_studies/cl_optuna_small_loc1-6_v1/eval-real-mono/
+```
+
+---
+
+## 7. 速度推定評価（VS13 / 実データ）
+
+学習済み速度予測モデル（encoder + MLP）を使って VS13 実データ上で速度推定性能を評価します。
+全モデル・全事前学習の組み合わせをまとめて実行する場合は以下のシェルスクリプトを使用します:
+
+```bash
+bash ./exp6.sh
+```
+
+個別に実行する場合の例:
+
+```bash
+# Circle - MLP のシミュレーションデータでの評価
+python src/eval/speed_prediction_eval.py \
+  --model small \
+  --model-weights ./outputs/speed_prediction/cl_optuna_small_loc1-6_v1/best_speed_regressor_mse.pth \
+  --loss mse \
+  --batch-size 32 \
+  --visualize \
+  --output-dir ./outputs/speed_prediction/cl_optuna_small_loc1-6_v1/eval-sim/
+
+# Circle - MLP の実データでの評価
+python src/eval/speed_prediction_eval.py \
+  --model small \
+  --model-weights ./outputs/speed_prediction/cl_optuna_small_loc1-6_v1/best_speed_regressor_mse.pth \
+  --loss mse \
+  --batch-size 32 \
+  --visualize \
+  --data-csv ./data/processed/real/vs13/vs13.csv \
+  --main-data-dir ./data/processed/real/vs13 \
+  --output-dir ./outputs/speed_prediction/cl_optuna_small_loc1-6_v1/eval-real/
+```
+
+---
+
+## 8. 最小スモークテスト（変換後に「読めるか」だけ確認）
+
+```bash
+python src/real_data_tool/smoke_real_pipeline.py \
   --data-csv ./data/processed/real/idmt_traffic/idmt_traffic.csv \
   --main-data-dir ./data/processed/real/idmt_traffic \
   --data-selection loc1 \
