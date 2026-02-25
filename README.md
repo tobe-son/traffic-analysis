@@ -1,6 +1,6 @@
-# 交通騒音による交通モニタリングシステムに関する検討
+# 交通騒音からの環境条件に頑健な潜在表現学習による車両認識と速度推定
 
-このリポジトリは、今年度の卒業研究「交通騒音による交通モニタリングシステムに関する検討」の研究で使用したプログラムを公開するためのものです。
+このリポジトリは、今年度の卒業研究「交通騒音からの環境条件に頑健な潜在表現学習による車両認識と速度推定」の研究で使用したプログラムを公開するためのものです。
 本研究は、昨年度の卒業研究「環境音の特徴を捉える潜在空間表現の設計」の研究を引き継いでいます。
 
 本コードは、論文に記載した実験結果の再現性を担保する目的で公開されていますが、研究プロトタイプとしての提供であり、今後のメンテナンスやサポートは行いません。  
@@ -18,10 +18,10 @@
 本プロジェクトは、第一段階として、環境音から交通監視に有用な特徴を抽出し、深層距離学習を用いて潜在空間を取得と速度予測モデルの構築を行いました。実験は以下の4種類を行い、プログラム実装面での詳細な検証を行いました。
 
 - **実験１： Circle Loss による潜在空間の取得**  
-   車種（car, cv）および進行方向（right, left）のラベルを用い、CNNエンコーダ（チャネル構成：1→16→32→64→64、すべて3×3カーネル、stride=2、padding=1）で低次元表現を学習しました。Adam（学習率1e-3、バッチサイズ32）を用いて300エポックで学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
+   車種（car, cv）および進行方向（right, left）のラベルを用い、4種のCNN系エンコーダで低次元表現を学習しました。Adamを用いて300エポックで学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
 
 - **実験２： Arcface Loss による潜在空間の取得**  
-   実験1と同様にArcface Lossを用いて低次元表現を学習しました。Adam（学習率1e-3、バッチサイズ32）を用いて300エポックで学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
+   実験1と同様にArcface Lossを用いて低次元表現を学習しました。Adamを用いて300エポックで学習し、t-SNEによる可視化で4クラスタ（car_left, car_right, cv_left, cv_right）が明確に分離されることを確認しました。
 
 - **実験３： Log-ratio Loss による潜在空間の取得**
     Circle LossとArcface Lossで事前学習したモデルに対し、連続値の速度ラベルを反映させるためLog-ratio Lossを適用。Adam（学習率1e-3、バッチサイズ32）で100エポック学習し、t-SNEによる可視化で速度情報が保持された潜在空間が形成されることを確認しました。
@@ -31,10 +31,10 @@
 
 第二段階として、作成したモデルに実データを適用して、システムの有用性を検証しました。実験は以下の2種類を行いました。
 - **実験５： IDMTデータセットを用いた車種分類評価**  
-   予定
+   事前学習済みエンコーダ（CircleLoss / ArcFace）を IDMT 実データに適用し、車種分類性能（Silhouette係数・Recall@k・k-NN精度等）をシミュレーションデータと比較評価しました。シミュレーションで学習した潜在空間が実データにも有効であることを確認しました。
 
 - **実験６： vs13データセットを用いた速度推定評価**  
-   予定
+   事前学習済みエンコーダに MLP 回帰ヘッドを組み合わせた速度予測モデルを VS13 実データで評価し、各事前学習手法（CircleLoss / ArcFace / LogRatio / 継続学習）の速度推定精度を比較しました。
 
 ## 主な機能とモジュール
 
@@ -70,14 +70,21 @@
     - *speedPrediction.py*：実験4：速度予測モデルを学習させるためスクリプト
   - **real_data_tool/**
     実データを処理するためのスクリプト
+    - 詳細は[資料](./src/real_data_tool/README.md)参照
   - **sim_data_tool/**
     シミュレーションデータを処理するためのスクリプト
+  - **eval/**
+    実験5・6で使用する評価スクリプト
+    - *deep_metric_eval.py*：実験5：エンコーダの車種分類性能を評価するスクリプト（4クラス: 車種×方向）
+    - *deep_metric_eval_mono.py*：実験5：実データでの車種2クラス評価スクリプト（方向なし）
+    - *deep_metric_eval_sim2real_tsne.py*：シミュレーション→実データの潜在空間可視化スクリプト
+    - *speed_prediction_eval.py*：実験6：速度予測モデルを評価するスクリプト
 - **data/**
   学習に使用するデータを格納するフォルダ
 - **configs/**
   HPOで探索するハイパパラメータの範囲の指定するjsonファイルを収めるフォルダ
 
-## 環境構築と実行方法（執筆中）
+## 環境構築と実行方法
 
 以下の手順で環境をセットアップし、プログラムを実行してください。
 
@@ -106,12 +113,12 @@
    ```
    ただし、Condaの環境が導入され、CUDAのバージョンは12.1以上であることが前提です。
 
-3. **プログラムと学習データのダウンロード**  （執筆中）
+3. **プログラムと学習データのダウンロード**  
    - 深層距離学習の損失関数（CircleLoss）は、[Githubページ](https://github.com/TinyZeaMays/CircleLoss)からダウンロードし、`src/loss/`ディレクトリに`circle_loss.py`として配置してください。  
    - 深層距離学習の損失関数（LogRatioLoss）は、[Githubページ](https://github.com/sung-yeon-kim/Beyond-Binary-Supervision-CVPR19)からダウンロードし、`main.py`、`utils.py`、`LogRatioLoss.py`を`src/loss/`ディレクトリに配置してください。  
    - 学習データは、[Zenodo](https://zenodo.org/records/10700792)から`simulation.zip`をダウンロードして解凍し、`loc1`～`loc6`のフォルダを`data/raw/simulation/`に配置してください。
-
-   - 追加の学習データ[Zenodo](https://zenodo.org/records/7551553)からダウンロードして解凍してください
+   - 実データ（IDMT Traffic）は[IDMTデータセット](https://www.idmt.fraunhofer.de/en/publications/datasets/traffic.html)からダウンロードし、`data/raw/IDMT_Traffic/`に配置してください。
+   - 実データ（VS13）は[Zenodo](https://zenodo.org/records/7551553)からダウンロードして解凍し、`data/raw/VS13/`に配置してください。
 
 4. **シミュレーションデータの準備**  
    - 以下のコマンドを実行して、走行音が最も大きい6秒間のデータをトリミングします。  
@@ -187,7 +194,7 @@
       - HPO探索実行
         - 全モデルで探索（bashにまとめられている）
           ```bash
-          bash ./exp0_hpo.sh
+          bash ./scripts/exp0_hpo.sh
           ```
 
    - **実験１（CircleLossによる深層距離学習）**  
@@ -207,7 +214,7 @@
       - HPO探索実行
         - 全モデルで探索（bashにまとめられている）
           ```bash
-          bash ./exp1_hpo.sh
+          bash ./scripts/exp1_hpo.sh
           ```
 
    - **実験２（ArcfaceLossによる深層距離学習）**
@@ -227,7 +234,7 @@
       - HPO探索実行
         - 全モデルで探索（bashにまとめられている）
           ```bash
-          bash ./exp2_hpo.sh
+          bash ./scripts/exp2_hpo.sh
           ```
 
    - **実験３（LogRatioLossによる連続情報を保持した潜在空間の取得）**  
@@ -235,24 +242,48 @@
       - HPO探索実行
         - 新規にLogRatioLossで全モデルを探索（bashにまとめられている）
           ```bash
-          bash ./exp3_hpo.sh
+          bash ./scripts/exp3_hpo.sh
           ```
-        - 継続事前学習のパラメータを全モデルで探索（bashにまとめられている）
+        - CircleLoss事前学習からの継続学習パラメータを全モデルで探索
           ```bash
-          bash ./exp3c_hpo.sh
+          bash ./scripts/exp3c_hpo.sh
+          ```
+        - ArcFaceLoss事前学習からの継続学習パラメータを全モデルで探索
+          ```bash
+          bash ./scripts/exp3c2_hpo.sh
           ```
 
    - **実験４（速度予測モデルの学習）**  
-     事前学習済みの潜在空間を利用して、速度予測モデルの学習を行います。実験２からの継続学習を行う場合は、`outputs/`フォルダに保存された`.pth`ファイルを`encoder/`直下に配置し、プログラム内の該当部分のコメントを外してください。  
+     事前学習済みの潜在空間を利用して、速度予測モデルの学習を行います。全モデル・全事前学習の組み合わせをまとめて実行できます。
      ```bash
-     poetry run python -m encoder.speedPrediction
+     bash ./scripts/exp4.sh
+     ```
+     個別に実行する場合は `src/mlp/speedPrediction.py` を使用します。詳細は[コマンド集](./docs/workflow_commands.md)を参照してください。
+
+   - **実験５（IDMTデータセットを用いた車種分類評価）**  
+     事前学習済みエンコーダを IDMT 実データに適用して、車種分類性能を評価します。
+     ```bash
+     bash ./scripts/exp5.sh
+     ```
+
+   - **実験６（vs13データセットを用いた速度推定評価）**  
+     学習済み速度予測モデルを VS13 実データに適用して、速度推定精度を評価します。
+     ```bash
+     bash ./scripts/exp6.sh
      ```
 
 7. **その他のプログラム**
    - t-SNEによる可視化
-      `outputs/`フォルダに保存された`latent_spaces`ファイルと`metadata.csv`ファイルを`TSNE/`直下に配置し、以下のプログラムを実行することで、t-SNEによる可視化が行えます。`TSNE/tsne.py`の中でハイパパラメータを変更することができます。
+      学習済みエンコーダの重みと対応するデータCSVを用いて、`src/metric/visualize_labelclustering_tsne.py` でt-SNEによる可視化が行えます。
+      詳細は[Optunaドキュメント](./docs/optuna.md)を参照してください。
      ```bash
-     poetry run python -m TSNE.tsne
+     MPLBACKEND=Agg python src/metric/visualize_labelclustering_tsne.py \
+       --model small \
+       --encoder-weights ./outputs/optuna_studies/<study_name>/best_encoder_small.pth \
+       --data-selection loc1-6 \
+       --data-csv ./data/processed/datasets/data_1-6.csv \
+       --main-data-dir ./data/processed/datasets \
+       --visualization t-SNE
      ```
 
 ## 注意事項

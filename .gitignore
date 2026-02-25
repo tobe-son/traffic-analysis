@@ -31,7 +31,7 @@ dist/
 data/
 # 学習済みモデル、画像、ログなどの結果
 outputs/20*
-
+outputs/*.db
 outputs/speed_prediction/*/*.pth
 
 
