@@ -1,0 +1,19 @@
+{
+  "kind": "synthetic mechanism verification only",
+  "results": [
+    {
+      "source_hz": 1000,
+      "target_sample_rate": 8000,
+      "naive_left_rms": 0.7071067811865474,
+      "filtered_left_rms": 0.7076921683015422,
+      "right_to_left_rms": 0.25
+    },
+    {
+      "source_hz": 7000,
+      "target_sample_rate": 8000,
+      "naive_left_rms": 0.7071067811865493,
+      "filtered_left_rms": 0.00017603105214639326,
+      "right_to_left_rms": 0.25
+    }
+  ]
+}

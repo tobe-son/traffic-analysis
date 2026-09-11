@@ -1,0 +1,26 @@
+name: research-checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install research dependencies
+        run: python -m pip install -r requirements-research.txt
+      - name: Test research utilities
+        run: PYTHONPATH=src python -m unittest discover -s tests -v
+      - name: Reproduce baseline audit
+        run: |
+          PYTHONPATH=src python -m research.domain_gap \
+            docs/research_2026/data/baseline_speed_summary.csv \
+            --mode summary \
+            --output /tmp/baseline_gap.json
+          diff -u docs/research_2026/baseline_gap.json /tmp/baseline_gap.json
+
