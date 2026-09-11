@@ -1,0 +1,86 @@
+{
+  "criterion": "highest real R2, then smallest simulation-to-real R2 gap",
+  "n_models": 9,
+  "best_existing_baseline": {
+    "model": "arcface_small",
+    "sim_r2": 0.493,
+    "real_r2": -0.019,
+    "r2_gap": 0.512,
+    "real_mae": 16.932,
+    "real_rmse": 20.208
+  },
+  "models": [
+    {
+      "model": "arcface_small",
+      "sim_r2": 0.493,
+      "real_r2": -0.019,
+      "r2_gap": 0.512,
+      "real_mae": 16.932,
+      "real_rmse": 20.208
+    },
+    {
+      "model": "circle_resnet18",
+      "sim_r2": 0.882,
+      "real_r2": -0.032,
+      "r2_gap": 0.914,
+      "real_mae": 17.062,
+      "real_rmse": 20.338
+    },
+    {
+      "model": "circle_vgg11",
+      "sim_r2": 0.889,
+      "real_r2": -0.114,
+      "r2_gap": 1.0030000000000001,
+      "real_mae": 17.944,
+      "real_rmse": 21.128
+    },
+    {
+      "model": "arcface_vgg11",
+      "sim_r2": 0.905,
+      "real_r2": -0.277,
+      "r2_gap": 1.182,
+      "real_mae": 18.588,
+      "real_rmse": 22.623
+    },
+    {
+      "model": "logratio_small",
+      "sim_r2": 0.779,
+      "real_r2": -0.518,
+      "r2_gap": 1.2970000000000002,
+      "real_mae": 20.09,
+      "real_rmse": 24.666
+    },
+    {
+      "model": "logratio_vgg11",
+      "sim_r2": 0.915,
+      "real_r2": -0.569,
+      "r2_gap": 1.484,
+      "real_mae": 21.252,
+      "real_rmse": 25.075
+    },
+    {
+      "model": "arcface_resnet18",
+      "sim_r2": 0.952,
+      "real_r2": -1.288,
+      "r2_gap": 2.24,
+      "real_mae": 25.394,
+      "real_rmse": 30.278
+    },
+    {
+      "model": "logratio_resnet18",
+      "sim_r2": 0.955,
+      "real_r2": -1.436,
+      "r2_gap": 2.391,
+      "real_mae": 26.298,
+      "real_rmse": 31.247
+    },
+    {
+      "model": "circle_small",
+      "sim_r2": 0.933,
+      "real_r2": -2.498,
+      "r2_gap": 3.431,
+      "real_mae": 32.312,
+      "real_rmse": 37.44
+    }
+  ]
+}

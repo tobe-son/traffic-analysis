@@ -1,0 +1,22 @@
+study: simulation_to_real_domain_robustness
+seed: 42
+primary_endpoint: real_domain_r2
+secondary_endpoints: [real_domain_mae, r2_generalization_gap]
+baseline: arcface_small
+validation:
+  simulation: leave_one_location_out
+  vs13: leave_one_vehicle_out
+  repeated_seeds: [42, 43, 44, 45, 46]
+statistics:
+  confidence_interval: paired_bootstrap_95
+  bootstrap_iterations: 2000
+success_criteria:
+  minimum_real_r2: 0.0
+  minimum_mae_improvement_over_baseline_percent: 10
+  maximum_r2_gap: 0.75
+ablations:
+  - baseline
+  - frequency_wise_normalization
+  - gain_and_noise_augmentation
+  - normalization_plus_augmentation
+
